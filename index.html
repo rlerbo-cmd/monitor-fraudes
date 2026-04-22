@@ -13,17 +13,17 @@
       --blue: #0047cc;
       --blue-light: #1a6bff;
       --accent: #00d4ff;
-      --accent2: #ff3d5a;
       --text: #c8d8f0;
       --text-dim: #4a6080;
       --text-bright: #e8f4ff;
       --green: #00e676;
       --yellow: #ffd740;
+      --red: #ff3d5a;
       --mono: 'IBM Plex Mono', monospace;
       --sans: 'IBM Plex Sans', sans-serif;
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin:0; padding:0; box-sizing:border-box; }
 
     body {
       background: var(--bg);
@@ -33,419 +33,318 @@
       overflow-x: hidden;
     }
 
-    /* Grid de fundo */
     body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
+      content:'';
+      position:fixed;
+      inset:0;
       background-image:
         linear-gradient(rgba(0,71,204,0.04) 1px, transparent 1px),
         linear-gradient(90deg, rgba(0,71,204,0.04) 1px, transparent 1px);
-      background-size: 40px 40px;
-      pointer-events: none;
-      z-index: 0;
+      background-size:40px 40px;
+      pointer-events:none;
+      z-index:0;
     }
 
-    /* HEADER */
     header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: rgba(4, 8, 15, 0.92);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 24px;
-      height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      position:sticky; top:0; z-index:100;
+      background:rgba(4,8,15,0.92);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--border);
+      padding:0 24px; height:60px;
+      display:flex; align-items:center; justify-content:space-between;
     }
 
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
+    .header-left { display:flex; align-items:center; gap:16px; }
 
     .logo {
-      font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--accent);
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
+      font-family:var(--mono); font-size:13px; font-weight:600;
+      color:var(--accent); letter-spacing:0.15em;
     }
-
-    .logo span {
-      color: var(--text-dim);
-    }
+    .logo span { color:var(--text-dim); }
 
     .live-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(0, 230, 118, 0.08);
-      border: 1px solid rgba(0, 230, 118, 0.2);
-      border-radius: 4px;
-      padding: 3px 10px;
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--green);
-      letter-spacing: 0.1em;
+      display:flex; align-items:center; gap:6px;
+      background:rgba(0,230,118,0.08);
+      border:1px solid rgba(0,230,118,0.2);
+      border-radius:4px; padding:3px 10px;
+      font-family:var(--mono); font-size:10px;
+      color:var(--green); letter-spacing:0.1em;
     }
 
     .live-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--green);
-      animation: pulse 1.5s infinite;
+      width:6px; height:6px; border-radius:50%;
+      background:var(--green); animation:pulse 1.5s infinite;
     }
 
     @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.8); }
+      0%,100% { opacity:1; transform:scale(1); }
+      50% { opacity:0.4; transform:scale(0.8); }
     }
 
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
+    .header-right { display:flex; align-items:center; gap:14px; }
 
-    #clock {
-      font-family: var(--mono);
-      font-size: 13px;
-      color: var(--text-dim);
-    }
+    #clock { font-family:var(--mono); font-size:13px; color:var(--text-dim); }
 
     #countdown {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--accent);
-      background: rgba(0, 212, 255, 0.06);
-      border: 1px solid rgba(0, 212, 255, 0.15);
-      border-radius: 4px;
-      padding: 3px 10px;
+      font-family:var(--mono); font-size:11px; color:var(--accent);
+      background:rgba(0,212,255,0.06);
+      border:1px solid rgba(0,212,255,0.15);
+      border-radius:4px; padding:3px 10px;
     }
 
-    #total-count {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-dim);
+    #total-count { font-family:var(--mono); font-size:11px; color:var(--text-dim); }
+
+    #sound-toggle {
+      font-family:var(--mono); font-size:11px;
+      padding:3px 12px; border-radius:4px;
+      border:1px solid var(--border);
+      background:transparent; color:var(--text-dim);
+      cursor:pointer; transition:all 0.2s;
+    }
+    #sound-toggle.on {
+      border-color:var(--green); color:var(--green);
+      background:rgba(0,230,118,0.06);
+    }
+
+    /* TOAST */
+    #toast {
+      position:fixed; top:70px; right:24px; z-index:200;
+      border-radius:6px; padding:10px 16px;
+      font-family:var(--mono); font-size:11px;
+      display:none; max-width:320px;
+      animation:toastIn 0.3s ease;
+    }
+    @keyframes toastIn {
+      from { opacity:0; transform:translateY(-10px); }
+      to { opacity:1; transform:translateY(0); }
     }
 
     /* FILTROS */
     .filters {
-      position: relative;
-      z-index: 10;
-      padding: 12px 24px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      border-bottom: 1px solid var(--border);
-      background: rgba(9, 15, 26, 0.8);
+      position:relative; z-index:10;
+      padding:12px 24px;
+      display:flex; gap:8px; flex-wrap:wrap;
+      border-bottom:1px solid var(--border);
+      background:rgba(9,15,26,0.8);
     }
 
     .filter-btn {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.05em;
-      padding: 4px 12px;
-      border-radius: 3px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text-dim);
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
+      font-family:var(--mono); font-size:10px;
+      letter-spacing:0.05em; padding:4px 12px;
+      border-radius:3px; border:1px solid var(--border);
+      background:transparent; color:var(--text-dim);
+      cursor:pointer; transition:all 0.2s; white-space:nowrap;
     }
+    .filter-btn:hover { border-color:var(--blue-light); color:var(--text); }
+    .filter-btn.active { background:var(--blue); border-color:var(--blue-light); color:#fff; }
 
-    .filter-btn:hover {
-      border-color: var(--blue-light);
-      color: var(--text);
-    }
-
-    .filter-btn.active {
-      background: var(--blue);
-      border-color: var(--blue-light);
-      color: #fff;
-    }
-
-    /* MAIN LAYOUT */
+    /* LAYOUT */
     .main {
-      position: relative;
-      z-index: 1;
-      display: grid;
-      grid-template-columns: 1fr 280px;
-      gap: 0;
-      height: calc(100vh - 108px);
+      position:relative; z-index:1;
+      display:grid; grid-template-columns:1fr 280px;
+      height:calc(100vh - 108px);
     }
 
-    /* FEED */
     .feed {
-      overflow-y: auto;
-      padding: 20px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
+      overflow-y:auto; padding:20px 24px;
+      display:flex; flex-direction:column; gap:10px;
+      scrollbar-width:thin; scrollbar-color:var(--border) transparent;
     }
-
-    .feed::-webkit-scrollbar { width: 4px; }
-    .feed::-webkit-scrollbar-track { background: transparent; }
-    .feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .feed::-webkit-scrollbar { width:4px; }
+    .feed::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
 
     /* CARD */
     .card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 14px 16px;
-      position: relative;
-      overflow: hidden;
-      animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      transition: border-color 0.2s, transform 0.2s;
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:6px; padding:14px 16px;
+      position:relative; overflow:hidden;
+      animation:slideIn 0.4s cubic-bezier(0.16,1,0.3,1);
+      transition:border-color 0.2s, transform 0.2s;
+      display:grid;
+      grid-template-columns:44px 1fr;
+      gap:12px;
+      align-items:start;
     }
 
-    .card:hover {
-      border-color: var(--blue-light);
-      transform: translateX(3px);
-    }
+    .card:hover { border-color:var(--blue-light); transform:translateX(3px); }
 
     .card::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 3px;
+      content:''; position:absolute;
+      left:0; top:0; bottom:0; width:3px;
     }
 
-    .card.cat-0::before { background: #1a6bff; }
-    .card.cat-1::before { background: #00d4ff; }
-    .card.cat-2::before { background: #ff3d5a; }
-    .card.cat-3::before { background: #ffd740; }
-    .card.cat-4::before { background: #a855f7; }
-    .card.cat-5::before { background: #ff6b35; }
-    .card.cat-6::before { background: #00e676; }
-    .card.cat-7::before { background: #ff3d5a; }
-    .card.cat-8::before { background: #ffd740; }
-    .card.cat-9::before { background: #00d4ff; }
-    .card.cat-10::before { background: #a855f7; }
+    /* Destaque urgente */
+    .card.destaque {
+      background:rgba(255,61,90,0.05);
+      border-color:rgba(255,61,90,0.3);
+      animation:slideIn 0.4s cubic-bezier(0.16,1,0.3,1), glowPulse 2s ease-in-out 3;
+    }
+    .card.destaque:hover { border-color:var(--red); }
+
+    @keyframes glowPulse {
+      0%,100% { box-shadow:none; border-color:rgba(255,61,90,0.3); }
+      50% { box-shadow:0 0 22px rgba(255,61,90,0.25); border-color:rgba(255,61,90,0.8); }
+    }
 
     @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(-16px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity:0; transform:translateY(-16px); }
+      to { opacity:1; transform:translateY(0); }
     }
 
+    /* Barra colorida lateral */
+    .card.cat-0::before { background:#1a6bff; }
+    .card.cat-1::before { background:#00d4ff; }
+    .card.cat-2::before { background:#ff3d5a; }
+    .card.cat-3::before { background:#ffd740; }
+    .card.cat-4::before { background:#a855f7; }
+    .card.cat-5::before { background:#ff6b35; }
+    .card.cat-6::before { background:#00e676; }
+    .card.cat-7::before { background:#ff3d5a; }
+    .card.cat-8::before { background:#ffd740; }
+    .card.cat-9::before { background:#00d4ff; }
+    .card.cat-10::before { background:#a855f7; }
+
+    /* Ícone da categoria */
+    .card-icon {
+      width:44px; height:44px;
+      border-radius:8px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:22px;
+      flex-shrink:0;
+    }
+
+    .card.cat-0 .card-icon  { background:rgba(26,107,255,0.12); }
+    .card.cat-1 .card-icon  { background:rgba(0,212,255,0.10); }
+    .card.cat-2 .card-icon  { background:rgba(255,61,90,0.12); }
+    .card.cat-3 .card-icon  { background:rgba(255,215,64,0.10); }
+    .card.cat-4 .card-icon  { background:rgba(168,85,247,0.12); }
+    .card.cat-5 .card-icon  { background:rgba(255,107,53,0.12); }
+    .card.cat-6 .card-icon  { background:rgba(0,230,118,0.10); }
+    .card.cat-7 .card-icon  { background:rgba(255,61,90,0.10); }
+    .card.cat-8 .card-icon  { background:rgba(255,215,64,0.10); }
+    .card.cat-9 .card-icon  { background:rgba(0,212,255,0.10); }
+    .card.cat-10 .card-icon { background:rgba(168,85,247,0.12); }
+
+    .card.destaque .card-icon { animation:iconPulse 1.2s ease-in-out 5; }
+
+    @keyframes iconPulse {
+      0%,100% { transform:scale(1); }
+      50% { transform:scale(1.15); }
+    }
+
+    .card-body { min-width:0; }
+
     .card-meta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
+      display:flex; align-items:center;
+      gap:8px; margin-bottom:6px;
     }
 
     .cat-tag {
-      font-family: var(--mono);
-      font-size: 9px;
-      letter-spacing: 0.1em;
-      padding: 2px 8px;
-      border-radius: 2px;
-      font-weight: 600;
-      text-transform: uppercase;
+      font-family:var(--mono); font-size:9px;
+      letter-spacing:0.1em; padding:2px 8px;
+      border-radius:2px; font-weight:600; text-transform:uppercase;
     }
 
-    .cat-tag.cat-0 { background: rgba(26,107,255,0.15); color: #6699ff; }
-    .cat-tag.cat-1 { background: rgba(0,212,255,0.12); color: #00d4ff; }
-    .cat-tag.cat-2 { background: rgba(255,61,90,0.12); color: #ff3d5a; }
-    .cat-tag.cat-3 { background: rgba(255,215,64,0.12); color: #ffd740; }
-    .cat-tag.cat-4 { background: rgba(168,85,247,0.12); color: #c084fc; }
-    .cat-tag.cat-5 { background: rgba(255,107,53,0.12); color: #ff9a6c; }
-    .cat-tag.cat-6 { background: rgba(0,230,118,0.12); color: #00e676; }
-    .cat-tag.cat-7 { background: rgba(255,61,90,0.12); color: #ff6b8a; }
-    .cat-tag.cat-8 { background: rgba(255,215,64,0.12); color: #ffe082; }
-    .cat-tag.cat-9 { background: rgba(0,212,255,0.12); color: #80e9ff; }
-    .cat-tag.cat-10 { background: rgba(168,85,247,0.12); color: #d4a0ff; }
+    .cat-tag.cat-0  { background:rgba(26,107,255,0.15); color:#6699ff; }
+    .cat-tag.cat-1  { background:rgba(0,212,255,0.12);  color:#00d4ff; }
+    .cat-tag.cat-2  { background:rgba(255,61,90,0.12);  color:#ff3d5a; }
+    .cat-tag.cat-3  { background:rgba(255,215,64,0.12); color:#ffd740; }
+    .cat-tag.cat-4  { background:rgba(168,85,247,0.12); color:#c084fc; }
+    .cat-tag.cat-5  { background:rgba(255,107,53,0.12); color:#ff9a6c; }
+    .cat-tag.cat-6  { background:rgba(0,230,118,0.12);  color:#00e676; }
+    .cat-tag.cat-7  { background:rgba(255,61,90,0.12);  color:#ff6b8a; }
+    .cat-tag.cat-8  { background:rgba(255,215,64,0.12); color:#ffe082; }
+    .cat-tag.cat-9  { background:rgba(0,212,255,0.12);  color:#80e9ff; }
+    .cat-tag.cat-10 { background:rgba(168,85,247,0.12); color:#d4a0ff; }
 
-    .card-time {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--text-dim);
-      margin-left: auto;
+    .urgente-badge {
+      font-family:var(--mono); font-size:9px;
+      color:var(--red); background:rgba(255,61,90,0.1);
+      border:1px solid rgba(255,61,90,0.3);
+      border-radius:3px; padding:2px 7px;
+      animation:blinkTag 1.2s ease-in-out 5;
+      display:none;
     }
+    .card.destaque .urgente-badge { display:inline-block; }
+
+    @keyframes blinkTag {
+      0%,100% { opacity:1; } 50% { opacity:0.2; }
+    }
+
+    .card-time { font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-left:auto; }
 
     .card-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-bright);
-      line-height: 1.5;
-      margin-bottom: 6px;
-      text-decoration: none;
-      display: block;
+      font-size:14px; font-weight:600;
+      color:var(--text-bright); line-height:1.5;
+      margin-bottom:5px; text-decoration:none; display:block;
     }
+    .card-title:hover { color:var(--accent); }
 
-    .card-title:hover {
-      color: var(--accent);
-    }
-
-    .card-source {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--text-dim);
-    }
+    .card-source { font-family:var(--mono); font-size:10px; color:var(--text-dim); }
 
     /* SIDEBAR */
     .sidebar {
-      border-left: 1px solid var(--border);
-      background: var(--panel);
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
+      border-left:1px solid var(--border);
+      background:var(--panel); overflow-y:auto;
+      scrollbar-width:thin; scrollbar-color:var(--border) transparent;
     }
+    .sidebar::-webkit-scrollbar { width:4px; }
+    .sidebar::-webkit-scrollbar-thumb { background:var(--border); }
 
-    .sidebar::-webkit-scrollbar { width: 4px; }
-    .sidebar::-webkit-scrollbar-thumb { background: var(--border); }
-
-    .sidebar-section {
-      padding: 16px;
-      border-bottom: 1px solid var(--border);
-    }
+    .sidebar-section { padding:16px; border-bottom:1px solid var(--border); }
 
     .sidebar-title {
-      font-family: var(--mono);
-      font-size: 9px;
-      letter-spacing: 0.15em;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      margin-bottom: 12px;
+      font-family:var(--mono); font-size:9px;
+      letter-spacing:0.15em; color:var(--text-dim);
+      text-transform:uppercase; margin-bottom:12px;
     }
 
     .stat-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 6px 0;
-      border-bottom: 1px solid rgba(13,31,60,0.5);
+      display:flex; justify-content:space-between;
+      align-items:center; padding:6px 0;
+      border-bottom:1px solid rgba(13,31,60,0.5);
     }
+    .stat-row:last-child { border-bottom:none; }
 
-    .stat-row:last-child { border-bottom: none; }
+    .stat-label { font-size:10px; color:var(--text-dim); display:flex; align-items:center; gap:6px; }
+    .stat-icon { font-size:13px; }
+    .stat-value { font-family:var(--mono); font-size:12px; font-weight:600; color:var(--text-bright); }
 
-    .stat-label {
-      font-size: 11px;
-      color: var(--text-dim);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+    .bar-wrap { margin-top:4px; height:2px; background:var(--border); border-radius:1px; overflow:hidden; }
+    .bar-fill { height:100%; border-radius:1px; transition:width 0.6s ease; }
 
-    .stat-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
+    #status-msg { font-family:var(--mono); font-size:10px; color:var(--text-dim); text-align:center; }
 
-    .stat-value {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-bright);
-    }
+    .empty-state { text-align:center; padding:60px 20px; color:var(--text-dim); }
+    .empty-state .icon { font-size:32px; margin-bottom:12px; opacity:0.4; }
+    .empty-state p { font-family:var(--mono); font-size:12px; }
 
-    .bar-wrap {
-      margin-top: 4px;
-      height: 2px;
-      background: var(--border);
-      border-radius: 1px;
-      overflow: hidden;
-    }
-
-    .bar-fill {
-      height: 100%;
-      border-radius: 1px;
-      transition: width 0.6s ease;
-    }
-
-    /* STATUS */
-    #status-msg {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--text-dim);
-      padding: 8px 16px;
-      text-align: center;
-    }
-
-    /* EMPTY STATE */
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--text-dim);
-    }
-
-    .empty-state .icon {
-      font-size: 32px;
-      margin-bottom: 12px;
-      opacity: 0.4;
-    }
-
-    .empty-state p {
-      font-family: var(--mono);
-      font-size: 12px;
-    }
-
-    /* LOADING */
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 40px;
-      color: var(--text-dim);
-      font-family: var(--mono);
-      font-size: 12px;
-    }
-
-    .loading-dots span {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--accent);
-      margin: 0 2px;
-      animation: bounce 1.2s infinite;
-    }
-
-    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
-    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    .loading { display:flex; align-items:center; justify-content:center; gap:8px; padding:40px; color:var(--text-dim); font-family:var(--mono); font-size:12px; }
+    .loading-dots span { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent); margin:0 2px; animation:bounce 1.2s infinite; }
+    .loading-dots span:nth-child(2) { animation-delay:0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay:0.4s; }
 
     @keyframes bounce {
-      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-      40% { transform: translateY(-6px); opacity: 1; }
+      0%,80%,100% { transform:translateY(0); opacity:0.4; }
+      40% { transform:translateY(-6px); opacity:1; }
     }
   </style>
 </head>
 <body>
 
+<div id="toast"></div>
+
 <header>
   <div class="header-left">
     <div class="logo">FRAUD<span>//</span>MONITOR</div>
-    <div class="live-badge">
-      <div class="live-dot"></div>
-      AO VIVO
-    </div>
+    <div class="live-badge"><div class="live-dot"></div>AO VIVO</div>
   </div>
   <div class="header-right">
     <span id="total-count">-- noticias</span>
     <span id="countdown">atualizando...</span>
     <span id="clock">--:--:--</span>
+    <button id="sound-toggle">🔇 SOM OFF</button>
   </div>
 </header>
 
@@ -460,7 +359,6 @@
       Carregando noticias...
     </div>
   </div>
-
   <div class="sidebar">
     <div class="sidebar-section">
       <div class="sidebar-title">Por categoria</div>
@@ -475,31 +373,82 @@
 
 <script>
 const CATEGORIAS = [
-  { id: 0, nome: "FRAUDES BANCARIAS",       query: "fraude bancaria brasil banco" },
-  { id: 1, nome: "GOLPES DIGITAIS E PIX",   query: "golpe pix fraude digital banco brasil" },
-  { id: 2, nome: "OPERACOES POLICIAIS",     query: "operacao policia federal civil fraude bancaria crime financeiro brasil" },
-  { id: 3, nome: "INVESTIGACOES",           query: "investigacao fraude financeira banco brasil ministerio publico" },
-  { id: 4, nome: "NOVOS GOLPES",            query: "novo golpe bancario modalidade fraude banco brasil" },
-  { id: 5, nome: "SEQUESTRO DE GERENTE",    query: "sequestro gerente banco brasil" },
-  { id: 6, nome: "CRIMES CONTRA BANCOS",   query: "crime contra banco brasil roubo furto" },
-  { id: 7, nome: "ASSALTO A BANCO",         query: "assalto roubo banco agencia bancaria brasil" },
-  { id: 8, nome: "SAIDINHA BANCARIA",       query: "saidinha bancaria golpe brasil vitima" },
-  { id: 9, nome: "EXPLOSAO DE AGENCIA",     query: "explosao agencia bancaria caixa eletronico brasil" },
-  { id: 10, nome: "CANGACO DIGITAL",        query: "cangaco digital ataque banco sistema financeiro brasil" },
+  { id:0,  icone:"🏦", nome:"FRAUDES BANCARIAS",     query:"fraude bancaria brasil banco",                                          destaque:false },
+  { id:1,  icone:"📱", nome:"GOLPES DIGITAIS E PIX", query:"golpe pix fraude digital banco brasil",                                 destaque:false },
+  { id:2,  icone:"🚔", nome:"OPERACOES POLICIAIS",   query:"operacao policia federal civil fraude bancaria crime financeiro brasil", destaque:true  },
+  { id:3,  icone:"🔍", nome:"INVESTIGACOES",         query:"investigacao fraude financeira banco brasil ministerio publico",         destaque:false },
+  { id:4,  icone:"⚠️", nome:"NOVOS GOLPES",          query:"novo golpe bancario modalidade fraude banco brasil",                    destaque:false },
+  { id:5,  icone:"🚨", nome:"SEQUESTRO DE GERENTE",  query:"sequestro gerente banco brasil",                                        destaque:true  },
+  { id:6,  icone:"💰", nome:"CRIMES CONTRA BANCOS",  query:"crime contra banco brasil roubo furto",                                 destaque:true  },
+  { id:7,  icone:"🦹", nome:"ASSALTO A BANCO",       query:"assalto roubo banco agencia bancaria brasil",                           destaque:true  },
+  { id:8,  icone:"💸", nome:"SAIDINHA BANCARIA",     query:"saidinha bancaria golpe brasil vitima",                                 destaque:false },
+  { id:9,  icone:"💥", nome:"EXPLOSAO DE AGENCIA",   query:"explosao agencia bancaria caixa eletronico brasil",                    destaque:true  },
+  { id:10, icone:"💻", nome:"CANGACO DIGITAL",       query:"cangaco digital ataque banco sistema financeiro brasil",                destaque:true  },
 ];
 
-const CORES = [
-  "#1a6bff","#00d4ff","#ff3d5a","#ffd740","#a855f7",
-  "#ff6b35","#00e676","#ff3d5a","#ffd740","#00d4ff","#a855f7"
-];
-
+const CORES = ["#1a6bff","#00d4ff","#ff3d5a","#ffd740","#a855f7","#ff6b35","#00e676","#ff3d5a","#ffd740","#00d4ff","#a855f7"];
 const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
 
 let todasNoticias = [];
 let filtroAtivo = "all";
 let countdownVal = 60;
 let countdownTimer = null;
+let somAtivo = false;
+let idsConhecidos = new Set();
+let audioCtx = null;
 
+// ---- SOM DE SIRENE ----
+function tocarSirene(urgente = false) {
+  if (!somAtivo) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const duracao = urgente ? 1.5 : 0.8;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = "sawtooth";
+
+    const inicio = audioCtx.currentTime;
+    const ciclos = urgente ? 3 : 2;
+
+    // Simula sirene oscilando entre dois tons
+    for (let i = 0; i < ciclos; i++) {
+      const t = inicio + i * (duracao / ciclos);
+      osc.frequency.setValueAtTime(urgente ? 800 : 600, t);
+      osc.frequency.linearRampToValueAtTime(urgente ? 1200 : 900, t + (duracao / ciclos / 2));
+      osc.frequency.linearRampToValueAtTime(urgente ? 800 : 600, t + (duracao / ciclos));
+    }
+
+    gain.gain.setValueAtTime(0, inicio);
+    gain.gain.linearRampToValueAtTime(0.18, inicio + 0.05);
+    gain.gain.linearRampToValueAtTime(0.18, inicio + duracao - 0.1);
+    gain.gain.linearRampToValueAtTime(0, inicio + duracao);
+
+    osc.start(inicio);
+    osc.stop(inicio + duracao);
+  } catch(e) {}
+}
+
+document.getElementById("sound-toggle").addEventListener("click", function() {
+  somAtivo = !somAtivo;
+  this.textContent = somAtivo ? "🔊 SOM ON" : "🔇 SOM OFF";
+  this.classList.toggle("on", somAtivo);
+  if (somAtivo) tocarSirene(false); // beep de confirmação
+});
+
+// ---- TOAST ----
+function mostrarToast(msg, urgente = false) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  t.style.border = `1px solid ${urgente ? "#ff3d5a" : "#00e676"}`;
+  t.style.color = urgente ? "#ff3d5a" : "#00e676";
+  t.style.background = urgente ? "#1a0505" : "#051a0a";
+  setTimeout(() => { t.style.display = "none"; }, 4000);
+}
+
+// ---- UTILS ----
 function limpar(txt) {
   return (txt || "")
     .replace(/[^\x20-\x7E\xC0-\xFF]/g, "")
@@ -511,10 +460,10 @@ function timeAgo(dateStr) {
   const diff = Math.floor((Date.now() - new Date(dateStr)) / 60000);
   if (diff < 1) return "agora";
   if (diff < 60) return `${diff}min`;
-  const h = Math.floor(diff / 60);
-  return `${h}h`;
+  return `${Math.floor(diff/60)}h`;
 }
 
+// ---- BUSCA ----
 async function buscarCategoria(cat) {
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(cat.query)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
   const url = PROXY + encodeURIComponent(rssUrl);
@@ -522,10 +471,9 @@ async function buscarCategoria(cat) {
     const res = await fetch(url);
     const data = await res.json();
     if (!data.items) return [];
-    const agora = Date.now();
-    const limite = agora - 24 * 60 * 60 * 1000;
+    const limite24h = Date.now() - 24 * 60 * 60 * 1000;
     return data.items
-      .filter(item => new Date(item.pubDate).getTime() > limite)
+      .filter(item => new Date(item.pubDate).getTime() > limite24h)
       .slice(0, 5)
       .map(item => {
         const tituloRaw = limpar(item.title || "");
@@ -534,32 +482,43 @@ async function buscarCategoria(cat) {
         const titulo = partes.join(" - ");
         return {
           id: item.link,
-          titulo,
-          fonte,
+          titulo, fonte,
           link: item.link,
           pubDate: item.pubDate,
           catId: cat.id,
           catNome: cat.nome,
+          catIcone: cat.icone,
+          destaque: cat.destaque,
         };
       });
-  } catch (e) {
-    return [];
-  }
+  } catch(e) { return []; }
 }
 
 async function buscarTudo() {
   setStatus("Buscando noticias...");
   const resultados = await Promise.all(CATEGORIAS.map(buscarCategoria));
-  
-  // Junta e remove duplicatas por link
   const mapa = new Map();
-  resultados.flat().forEach(n => {
-    if (!mapa.has(n.id)) mapa.set(n.id, n);
-  });
-
-  // Ordena por data, mais recente primeiro
-  todasNoticias = Array.from(mapa.values())
+  resultados.flat().forEach(n => { if (!mapa.has(n.id)) mapa.set(n.id, n); });
+  const novas = Array.from(mapa.values())
     .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+  // Detecta novas notícias e dispara alertas
+  if (idsConhecidos.size > 0) {
+    const novasEntradas = novas.filter(n => !idsConhecidos.has(n.id));
+    if (novasEntradas.length > 0) {
+      const temUrgente = novasEntradas.some(n => n.destaque);
+      tocarSirene(temUrgente);
+      mostrarToast(
+        temUrgente
+          ? `🚨 ALERTA: ${novasEntradas.length} nova(s) noticia(s) urgente(s)!`
+          : `🔔 ${novasEntradas.length} nova(s) noticia(s) encontrada(s)`,
+        temUrgente
+      );
+    }
+  }
+
+  novas.forEach(n => idsConhecidos.add(n.id));
+  todasNoticias = novas;
 
   renderFeed();
   renderStats();
@@ -568,6 +527,7 @@ async function buscarTudo() {
   document.getElementById("total-count").textContent = `${todasNoticias.length} noticias`;
 }
 
+// ---- RENDER ----
 function renderFeed() {
   const feed = document.getElementById("feed");
   const lista = filtroAtivo === "all"
@@ -575,22 +535,22 @@ function renderFeed() {
     : todasNoticias.filter(n => n.catId === parseInt(filtroAtivo));
 
   if (lista.length === 0) {
-    feed.innerHTML = `
-      <div class="empty-state">
-        <div class="icon">[ ]</div>
-        <p>Nenhuma noticia nas ultimas 24h</p>
-      </div>`;
+    feed.innerHTML = `<div class="empty-state"><div class="icon">[ ]</div><p>Nenhuma noticia nas ultimas 24h</p></div>`;
     return;
   }
 
   feed.innerHTML = lista.map(n => `
-    <div class="card cat-${n.catId}">
-      <div class="card-meta">
-        <span class="cat-tag cat-${n.catId}">${n.catNome}</span>
-        <span class="card-time">${timeAgo(n.pubDate)}</span>
+    <div class="card cat-${n.catId}${n.destaque ? " destaque" : ""}">
+      <div class="card-icon">${n.catIcone}</div>
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="cat-tag cat-${n.catId}">${n.catNome}</span>
+          <span class="urgente-badge">! URGENTE</span>
+          <span class="card-time">${timeAgo(n.pubDate)}</span>
+        </div>
+        <a class="card-title" href="${n.link}" target="_blank" rel="noopener">${n.titulo}</a>
+        <div class="card-source">${n.fonte}</div>
       </div>
-      <a class="card-title" href="${n.link}" target="_blank" rel="noopener">${n.titulo}</a>
-      <div class="card-source">${n.fonte}</div>
     </div>
   `).join("");
 }
@@ -598,15 +558,14 @@ function renderFeed() {
 function renderStats() {
   const list = document.getElementById("stats-list");
   const total = todasNoticias.length || 1;
-
   list.innerHTML = CATEGORIAS.map(cat => {
     const count = todasNoticias.filter(n => n.catId === cat.id).length;
     const pct = Math.round((count / total) * 100);
     return `
       <div class="stat-row">
         <div class="stat-label">
-          <div class="stat-dot" style="background:${CORES[cat.id]}"></div>
-          <span style="font-size:10px">${cat.nome}</span>
+          <span class="stat-icon">${cat.icone}</span>
+          <span>${cat.nome}</span>
         </div>
         <span class="stat-value">${count}</span>
       </div>
@@ -621,11 +580,10 @@ function atualizarFiltros() {
   const container = document.getElementById("filters");
   const botoes = CATEGORIAS.map(cat => {
     const count = todasNoticias.filter(n => n.catId === cat.id).length;
-    return `<button class="filter-btn${filtroAtivo == cat.id ? ' active' : ''}" data-cat="${cat.id}">${cat.nome} (${count})</button>`;
+    const ativo = filtroAtivo == cat.id ? " active" : "";
+    return `<button class="filter-btn${ativo}" data-cat="${cat.id}">${cat.icone} ${cat.nome} (${count})</button>`;
   }).join("");
-
-  container.innerHTML = `<button class="filter-btn${filtroAtivo === 'all' ? ' active' : ''}" data-cat="all">TODAS (${todasNoticias.length})</button>` + botoes;
-
+  container.innerHTML = `<button class="filter-btn${filtroAtivo === "all" ? " active" : ""}" data-cat="all">TODAS (${todasNoticias.length})</button>` + botoes;
   container.querySelectorAll(".filter-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       filtroAtivo = btn.dataset.cat;
@@ -657,7 +615,6 @@ function atualizarRelogio() {
   document.getElementById("clock").textContent = new Date().toLocaleTimeString("pt-BR");
 }
 
-// Inicia
 buscarTudo().then(iniciarContagem);
 setInterval(atualizarRelogio, 1000);
 atualizarRelogio();
