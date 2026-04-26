@@ -1,623 +1,2947 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Monitor de Fraudes Bancárias</title>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FraudMonitor — Sistema de Monitoramento de Fraudes Bancárias">
+  <title>FraudMonitor — Monitoramento de Fraudes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
+    /* ================================================================
+       DESIGN SYSTEM — variáveis globais
+    ================================================================ */
     :root {
-      --bg: #04080f;
-      --panel: #090f1a;
-      --border: #0d1f3c;
-      --blue: #0047cc;
-      --blue-light: #1a6bff;
-      --accent: #00d4ff;
-      --text: #c8d8f0;
-      --text-dim: #4a6080;
-      --text-bright: #e8f4ff;
-      --green: #00e676;
-      --yellow: #ffd740;
-      --red: #ff3d5a;
-      --mono: 'IBM Plex Mono', monospace;
-      --sans: 'IBM Plex Sans', sans-serif;
+      --bg:        #0b0f1a;
+      --bg2:       #111827;
+      --bg3:       #161d2e;
+      --card:      #131929;
+      --card-h:    #19203a;
+      --border:    #1e2a42;
+      --border-l:  #273454;
+
+      --txt:  #e2e8f6;
+      --txt2: #8b97b8;
+      --txt3: #4a5a7a;
+
+      --critical:    #f43f5e;
+      --critical-bg: rgba(244,63,94,.1);
+      --high:        #fb923c;
+      --high-bg:     rgba(251,146,60,.1);
+      --medium:      #fbbf24;
+      --medium-bg:   rgba(251,191,36,.1);
+      --low:         #34d399;
+      --low-bg:      rgba(52,211,153,.1);
+
+      --blue:   #3b82f6;
+      --cyan:   #22d3ee;
+      --purple: #a78bfa;
+
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+      --r:    8px;
+      --r-sm: 4px;
+      --r-xs: 2px;
+
+      --shadow:    0 1px 3px rgba(0,0,0,.4);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,.5);
     }
 
-    * { margin:0; padding:0; box-sizing:border-box; }
-
+    /* ================================================================
+       RESET
+    ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
     body {
       background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
-      min-height: 100vh;
-      overflow-x: hidden;
+      color: var(--txt);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { cursor: pointer; font-family: inherit; border: none; background: none; }
+    input, select { font-family: inherit; color: inherit; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ================================================================
+       LAYOUT PRINCIPAL
+    ================================================================ */
+    #app { height: 100vh; display: flex; flex-direction: column; }
+
+    /* ================================================================
+       HEADER
+    ================================================================ */
+    #header {
+      flex-shrink: 0;
+      height: 62px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 16px;
+      z-index: 50;
     }
 
-    body::before {
-      content:'';
-      position:fixed;
-      inset:0;
-      background-image:
-        linear-gradient(rgba(0,71,204,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,71,204,0.04) 1px, transparent 1px);
-      background-size:40px 40px;
-      pointer-events:none;
-      z-index:0;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-right: 20px;
+      border-right: 1px solid var(--border);
+      flex-shrink: 0;
     }
 
-    header {
-      position:sticky; top:0; z-index:100;
-      background:rgba(4,8,15,0.92);
-      backdrop-filter:blur(12px);
-      border-bottom:1px solid var(--border);
-      padding:0 24px; height:60px;
-      display:flex; align-items:center; justify-content:space-between;
+    .brand-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, #f43f5e, #fb923c);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
     }
 
-    .header-left { display:flex; align-items:center; gap:16px; }
+    .brand-text { line-height: 1.2; }
+    .brand-name  { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
+    .brand-sub   { font-size: 9px; color: var(--txt3); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; }
 
-    .logo {
-      font-family:var(--mono); font-size:13px; font-weight:600;
-      color:var(--accent); letter-spacing:0.15em;
+    /* KPIs */
+    .header-kpis { display: flex; gap: 8px; flex: 1; }
+
+    .kpi {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 6px 14px;
+      min-width: 96px;
     }
-    .logo span { color:var(--text-dim); }
 
-    .live-badge {
-      display:flex; align-items:center; gap:6px;
-      background:rgba(0,230,118,0.08);
-      border:1px solid rgba(0,230,118,0.2);
-      border-radius:4px; padding:3px 10px;
-      font-family:var(--mono); font-size:10px;
-      color:var(--green); letter-spacing:0.1em;
+    .kpi-val {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 500;
+      line-height: 1.1;
+    }
+
+    .kpi-lbl {
+      font-size: 9px;
+      color: var(--txt3);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin-top: 1px;
+    }
+
+    .kpi.--critical .kpi-val { color: var(--critical); }
+    .kpi.--high     .kpi-val { color: var(--high); }
+    .kpi.--time     .kpi-val { font-size: 14px; padding-top: 3px; color: var(--txt2); }
+
+    /* Controles header */
+    .header-ctrl {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-left: 16px;
+      border-left: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    #clock { font-family: var(--mono); font-size: 13px; color: var(--txt2); min-width: 68px; }
+
+    #countdown {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--txt3);
+      min-width: 64px;
     }
 
     .live-dot {
-      width:6px; height:6px; border-radius:50%;
-      background:var(--green); animation:pulse 1.5s infinite;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--low);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .live-dot.loading { background: var(--medium); animation: dotPulse 0.8s ease-in-out infinite; }
+    .live-dot.error   { background: var(--critical); }
+
+    @keyframes dotPulse {
+      0%,100% { opacity: 1; } 50% { opacity: 0.3; }
     }
 
-    @keyframes pulse {
-      0%,100% { opacity:1; transform:scale(1); }
-      50% { opacity:0.4; transform:scale(0.8); }
+    .btn-ctrl {
+      width: 32px; height: 32px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--txt2);
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .btn-ctrl:hover  { background: var(--card-h); color: var(--txt); border-color: var(--border-l); }
+    .btn-ctrl.active { background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.4); color: var(--blue); }
+
+    /* ================================================================
+       FILTROS
+    ================================================================ */
+    #filters-bar {
+      flex-shrink: 0;
+      height: 50px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    #filters-bar::-webkit-scrollbar { display: none; }
+
+    .ftab {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      border: 1px solid transparent;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--txt2);
+      white-space: nowrap;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .ftab:hover  { color: var(--txt); background: var(--bg3); border-color: var(--border); }
+    .ftab.active { color: var(--blue); background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.3); }
+
+    .ftab .badge {
+      background: rgba(255,255,255,.06);
+      border-radius: 100px;
+      padding: 0 6px;
+      font-size: 10px;
+      font-family: var(--mono);
     }
 
-    .header-right { display:flex; align-items:center; gap:14px; }
+    .fsep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; margin: 0 4px; }
 
-    #clock { font-family:var(--mono); font-size:13px; color:var(--text-dim); }
+    .fcontrols { display: flex; gap: 6px; margin-left: auto; flex-shrink: 0; }
 
-    #countdown {
-      font-family:var(--mono); font-size:11px; color:var(--accent);
-      background:rgba(0,212,255,0.06);
-      border:1px solid rgba(0,212,255,0.15);
-      border-radius:4px; padding:3px 10px;
+    .fselect {
+      height: 28px;
+      padding: 0 8px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--txt2);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .fselect:focus { border-color: var(--blue); color: var(--txt); }
+
+    #search {
+      height: 28px;
+      width: 200px;
+      padding: 0 10px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--txt);
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #search::placeholder { color: var(--txt3); }
+    #search:focus { border-color: var(--blue); }
+
+    /* ================================================================
+       MAIN
+    ================================================================ */
+    #main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      overflow: hidden;
     }
 
-    #total-count { font-family:var(--mono); font-size:11px; color:var(--text-dim); }
-
-    #sound-toggle {
-      font-family:var(--mono); font-size:11px;
-      padding:3px 12px; border-radius:4px;
-      border:1px solid var(--border);
-      background:transparent; color:var(--text-dim);
-      cursor:pointer; transition:all 0.2s;
-    }
-    #sound-toggle.on {
-      border-color:var(--green); color:var(--green);
-      background:rgba(0,230,118,0.06);
-    }
-
-    /* TOAST */
-    #toast {
-      position:fixed; top:70px; right:24px; z-index:200;
-      border-radius:6px; padding:10px 16px;
-      font-family:var(--mono); font-size:11px;
-      display:none; max-width:320px;
-      animation:toastIn 0.3s ease;
-    }
-    @keyframes toastIn {
-      from { opacity:0; transform:translateY(-10px); }
-      to { opacity:1; transform:translateY(0); }
+    /* ================================================================
+       FEED
+    ================================================================ */
+    #feed {
+      overflow-y: auto;
+      padding: 14px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
     }
 
-    /* FILTROS */
-    .filters {
-      position:relative; z-index:10;
-      padding:12px 24px;
-      display:flex; gap:8px; flex-wrap:wrap;
-      border-bottom:1px solid var(--border);
-      background:rgba(9,15,26,0.8);
+
+
+    /* ================================================================
+       DISMISS BUTTON
+    ================================================================ */
+    .btn-dismiss {
+      position: absolute;
+      bottom: 10px; right: 12px;   /* embaixo, longe do fav que fica no topo */
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      color: var(--txt3);
+      font-size: 11px;
+      line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 1;                  /* sempre visível */
+      transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .btn-dismiss:hover {
+      background: rgba(244,63,94,.15);
+      border-color: rgba(244,63,94,.5);
+      color: var(--critical);
+      transform: scale(1.15);
     }
 
-    .filter-btn {
-      font-family:var(--mono); font-size:10px;
-      letter-spacing:0.05em; padding:4px 12px;
-      border-radius:3px; border:1px solid var(--border);
-      background:transparent; color:var(--text-dim);
-      cursor:pointer; transition:all 0.2s; white-space:nowrap;
-    }
-    .filter-btn:hover { border-color:var(--blue-light); color:var(--text); }
-    .filter-btn.active { background:var(--blue); border-color:var(--blue-light); color:#fff; }
 
-    /* LAYOUT */
-    .main {
-      position:relative; z-index:1;
-      display:grid; grid-template-columns:1fr 280px;
-      height:calc(100vh - 108px);
+    /* ================================================================
+       IMPACT SCORING — badges e destaques institucionais
+    ================================================================ */
+    .impact-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: var(--r-xs);
+      font-size: 10px; font-weight: 700;
+      font-family: var(--mono); letter-spacing: 0.05em; flex-shrink: 0;
+    }
+    .impact-badge.direct  { color:#fff; background:linear-gradient(90deg,#f43f5e,#fb923c); }
+    .impact-badge.related { color:#fbbf24; background:rgba(251,191,36,.12); border:1px solid rgba(251,191,36,.3); }
+    .impact-badge.sector  { color:#a78bfa; background:rgba(167,139,250,.10); border:1px solid rgba(167,139,250,.25); }
+    .kpi.--impact .kpi-val { color:#fb923c; }
+    .card.impact-direct { background:rgba(244,63,94,.04); }
+    .card.impact-direct:hover { background:rgba(244,63,94,.07); }
+
+    /* ================================================================
+       SKELETON LOADER
+    ================================================================ */
+    .skeleton {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      height: 92px;
+      animation: shimmer 1.4s ease-in-out infinite;
+    }
+    .skeleton:nth-child(2) { opacity: .7; }
+    .skeleton:nth-child(3) { opacity: .4; }
+
+    @keyframes shimmer {
+      0%,100% { opacity: .5; } 50% { opacity: 1; }
     }
 
-    .feed {
-      overflow-y:auto; padding:20px 24px;
-      display:flex; flex-direction:column; gap:10px;
-      scrollbar-width:thin; scrollbar-color:var(--border) transparent;
+    /* ================================================================
+       EMPTY STATE
+    ================================================================ */
+    .empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 60px 24px;
+      text-align: center;
+      color: var(--txt3);
     }
-    .feed::-webkit-scrollbar { width:4px; }
-    .feed::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+    .empty-icon  { font-size: 36px; opacity: .4; }
+    .empty-title { font-size: 15px; font-weight: 600; color: var(--txt2); }
+    .empty-desc  { font-size: 12px; line-height: 1.7; max-width: 280px; }
 
-    /* CARD */
+    /* ================================================================
+       SIDEBAR
+    ================================================================ */
+    #sidebar {
+      border-left: 1px solid var(--border);
+      background: var(--bg2);
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .s-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+
+    .s-title {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--txt3);
+      margin-bottom: 11px;
+    }
+
+    /* Dist rows */
+    .dist-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+    .dist-icon { font-size: 13px; flex-shrink: 0; width: 18px; text-align: center; }
+    .dist-name { font-size: 11px; color: var(--txt2); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dist-val  { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--txt); flex-shrink: 0; }
+    .dist-bar  { height: 2px; background: var(--border); border-radius: 1px; overflow: hidden; margin-top: 2px; }
+    .dist-fill { height: 100%; border-radius: 1px; transition: width 0.5s ease; }
+
+    /* Status rows */
+    .st-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+    .st-lbl  { font-size: 11px; color: var(--txt3); }
+    .st-val  { font-family: var(--mono); font-size: 11px; color: var(--txt); }
+    .st-val.ok   { color: var(--low); }
+    .st-val.warn { color: var(--medium); }
+    .st-val.err  { color: var(--critical); }
+
+    /* ================================================================
+       MAPA MODAL
+    ================================================================ */
+    #map-modal {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(4,8,15,.92); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+    }
+    #map-modal.open { display: flex; }
+
+    #map-wrap {
+      width: 92vw; max-width: 1200px; height: 82vh;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex; flex-direction: column;
+      box-shadow: 0 24px 64px rgba(0,0,0,.7);
+      overflow: hidden;
+    }
+
+    #map-header {
+      flex-shrink: 0;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px;
+    }
+
+    #map-title  { font-size: 15px; font-weight: 700; }
+    #map-sub    { font-size: 10px; color: var(--txt3); margin-top: 2px; letter-spacing: .1em; text-transform: uppercase; }
+
+    #map-legend {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .leg-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 10px; color: var(--txt2);
+    }
+    .leg-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+
+    #map-close {
+      width: 28px; height: 28px; border-radius: 4px;
+      border: 1px solid var(--border); background: var(--bg3);
+      color: var(--txt2); font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s; flex-shrink: 0;
+    }
+    #map-close:hover { background: var(--card-h); color: var(--txt); }
+
+    #map-container { flex: 1; }
+
+    /* Leaflet overrides para dark mode */
+    .leaflet-container { background: #0d1520 !important; }
+    .leaflet-tile { filter: brightness(.7) saturate(.6) hue-rotate(190deg); }
+    .leaflet-popup-content-wrapper {
+      background: #111827 !important; color: #e2e8f6 !important;
+      border: 1px solid #1e2a42; border-radius: 8px !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,.5) !important;
+      max-width: 280px;
+    }
+    .leaflet-popup-tip { background: #111827 !important; }
+    .leaflet-popup-close-button { color: #8b97b8 !important; }
+
+    .map-popup-sev {
+      display: inline-block; padding: 2px 8px; border-radius: 2px;
+      font-size: 10px; font-weight: 700; font-family: var(--mono);
+      margin-bottom: 6px;
+    }
+    .map-popup-title {
+      font-size: 12px; font-weight: 600; color: #e2e8f6;
+      line-height: 1.45; margin-bottom: 6px;
+    }
+    .map-popup-meta { font-size: 10px; color: #4a5a7a; }
+    .map-popup-link {
+      display: inline-block; margin-top: 8px;
+      font-size: 11px; color: #3b82f6; text-decoration: none;
+    }
+    .map-popup-link:hover { text-decoration: underline; }
+
+    /* ================================================================
+       TOAST
+    ================================================================ */
+    #toasts {
+      position: fixed;
+      top: 16px;
+      right: 20px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-left-width: 3px;
+      border-radius: var(--r);
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--txt);
+      box-shadow: var(--shadow-lg);
+      max-width: 300px;
+      animation: tIn 0.3s ease;
+      pointer-events: auto;
+    }
+    .toast.critical { border-left-color: var(--critical); color: var(--critical); background: rgba(15,5,8,.95); }
+    .toast.high     { border-left-color: var(--high); }
+    .toast.info     { border-left-color: var(--blue); }
+    .toast.ok       { border-left-color: var(--low); }
+
+    @keyframes tIn  { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:none; } }
+    @keyframes tOut { to   { opacity:0; transform:translateX(20px); } }
+
+    /* ================================================================
+       CARD v2 — favicon, category stripe, circular gauge, glow
+    ================================================================ */
     .card {
-      background:var(--panel);
-      border:1px solid var(--border);
-      border-radius:6px; padding:14px 16px;
-      position:relative; overflow:hidden;
-      animation:slideIn 0.4s cubic-bezier(0.16,1,0.3,1);
-      transition:border-color 0.2s, transform 0.2s;
-      display:grid;
-      grid-template-columns:44px 1fr;
-      gap:12px;
-      align-items:start;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 0;
+      animation: cardIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.2s;
+      overflow: hidden;
+      position: relative;
+    }
+    .card:hover { background: var(--card-h); border-color: var(--border-l); }
+
+    /* Stripe lateral colorida por severidade */
+    .card-stripe {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      border-radius: var(--r) 0 0 var(--r);
+    }
+    .card.--critical .card-stripe { background: var(--critical); }
+    .card.--high     .card-stripe { background: var(--high); }
+    .card.--medium   .card-stripe { background: var(--medium); }
+    .card.--low      .card-stripe { background: var(--low); }
+
+    /* Glow animado para críticos */
+    .card.--critical {
+      animation: cardIn 0.35s cubic-bezier(0.16,1,0.3,1), criticalGlow 2.5s ease-in-out 3;
+    }
+    @keyframes criticalGlow {
+      0%,100% { box-shadow: none; border-color: var(--border); }
+      50%     { box-shadow: 0 0 18px rgba(244,63,94,.35), inset 0 0 20px rgba(244,63,94,.04); border-color: rgba(244,63,94,.6); }
     }
 
-    .card:hover { border-color:var(--blue-light); transform:translateX(3px); }
+    /* Inner padding (compensando a stripe) */
+    .card-inner { padding: 12px 14px 12px 18px; }
 
-    .card::before {
-      content:''; position:absolute;
-      left:0; top:0; bottom:0; width:3px;
+    /* Linha do topo */
+    .card-top {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
     }
 
-    /* Destaque urgente */
-    .card.destaque {
-      background:rgba(255,61,90,0.05);
-      border-color:rgba(255,61,90,0.3);
-      animation:slideIn 0.4s cubic-bezier(0.16,1,0.3,1), glowPulse 2s ease-in-out 3;
+    /* Favicon da fonte */
+    .card-favicon {
+      width: 16px; height: 16px; border-radius: 3px;
+      object-fit: contain; flex-shrink: 0; opacity: .85;
     }
-    .card.destaque:hover { border-color:var(--red); }
-
-    @keyframes glowPulse {
-      0%,100% { box-shadow:none; border-color:rgba(255,61,90,0.3); }
-      50% { box-shadow:0 0 22px rgba(255,61,90,0.25); border-color:rgba(255,61,90,0.8); }
-    }
-
-    @keyframes slideIn {
-      from { opacity:0; transform:translateY(-16px); }
-      to { opacity:1; transform:translateY(0); }
+    .card-favicon-placeholder {
+      width: 16px; height: 16px; border-radius: 3px;
+      background: var(--border); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; color: var(--txt3);
     }
 
-    /* Barra colorida lateral */
-    .card.cat-0::before { background:#1a6bff; }
-    .card.cat-1::before { background:#00d4ff; }
-    .card.cat-2::before { background:#ff3d5a; }
-    .card.cat-3::before { background:#ffd740; }
-    .card.cat-4::before { background:#a855f7; }
-    .card.cat-5::before { background:#ff6b35; }
-    .card.cat-6::before { background:#00e676; }
-    .card.cat-7::before { background:#ff3d5a; }
-    .card.cat-8::before { background:#ffd740; }
-    .card.cat-9::before { background:#00d4ff; }
-    .card.cat-10::before { background:#a855f7; }
+    /* Badge de severidade */
+    .sev-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: var(--r-xs);
+      font-size: 10px; font-weight: 700;
+      font-family: var(--mono); letter-spacing: 0.06em; flex-shrink: 0;
+    }
+    .sev-badge::before {
+      content: ''; width: 5px; height: 5px;
+      border-radius: 50%; background: currentColor;
+    }
+    .sev-badge.--critical { color: var(--critical); background: var(--critical-bg); }
+    .sev-badge.--high     { color: var(--high);     background: var(--high-bg); }
+    .sev-badge.--medium   { color: var(--medium);   background: var(--medium-bg); }
+    .sev-badge.--low      { color: var(--low);       background: var(--low-bg); }
 
-    /* Ícone da categoria */
-    .card-icon {
-      width:44px; height:44px;
-      border-radius:8px;
-      display:flex; align-items:center; justify-content:center;
-      font-size:22px;
-      flex-shrink:0;
+    /* Gauge circular SVG */
+    .gauge-wrap {
+      position: relative; width: 36px; height: 36px; flex-shrink: 0;
+    }
+    .gauge-svg { width: 36px; height: 36px; transform: rotate(-90deg); }
+    .gauge-track { fill: none; stroke: var(--border); stroke-width: 3; }
+    .gauge-fill  { fill: none; stroke-width: 3; stroke-linecap: round;
+                   transition: stroke-dashoffset 0.6s ease, stroke 0.3s; }
+    .gauge-label {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      line-height: 1;
     }
 
-    .card.cat-0 .card-icon  { background:rgba(26,107,255,0.12); }
-    .card.cat-1 .card-icon  { background:rgba(0,212,255,0.10); }
-    .card.cat-2 .card-icon  { background:rgba(255,61,90,0.12); }
-    .card.cat-3 .card-icon  { background:rgba(255,215,64,0.10); }
-    .card.cat-4 .card-icon  { background:rgba(168,85,247,0.12); }
-    .card.cat-5 .card-icon  { background:rgba(255,107,53,0.12); }
-    .card.cat-6 .card-icon  { background:rgba(0,230,118,0.10); }
-    .card.cat-7 .card-icon  { background:rgba(255,61,90,0.10); }
-    .card.cat-8 .card-icon  { background:rgba(255,215,64,0.10); }
-    .card.cat-9 .card-icon  { background:rgba(0,212,255,0.10); }
-    .card.cat-10 .card-icon { background:rgba(168,85,247,0.12); }
+    /* Ações */
+    .card-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .card-time { font-size: 11px; color: var(--txt3); font-family: var(--mono); white-space: nowrap; }
+    .btn-fav { font-size: 15px; color: var(--txt3); padding: 2px;
+               transition: color .15s, transform .15s; }
+    .btn-fav:hover  { color: var(--medium); transform: scale(1.15); }
+    .btn-fav.active { color: var(--medium); }
 
-    .card.destaque .card-icon { animation:iconPulse 1.2s ease-in-out 5; }
-
-    @keyframes iconPulse {
-      0%,100% { transform:scale(1); }
-      50% { transform:scale(1.15); }
-    }
-
-    .card-body { min-width:0; }
-
-    .card-meta {
-      display:flex; align-items:center;
-      gap:8px; margin-bottom:6px;
-    }
-
-    .cat-tag {
-      font-family:var(--mono); font-size:9px;
-      letter-spacing:0.1em; padding:2px 8px;
-      border-radius:2px; font-weight:600; text-transform:uppercase;
-    }
-
-    .cat-tag.cat-0  { background:rgba(26,107,255,0.15); color:#6699ff; }
-    .cat-tag.cat-1  { background:rgba(0,212,255,0.12);  color:#00d4ff; }
-    .cat-tag.cat-2  { background:rgba(255,61,90,0.12);  color:#ff3d5a; }
-    .cat-tag.cat-3  { background:rgba(255,215,64,0.12); color:#ffd740; }
-    .cat-tag.cat-4  { background:rgba(168,85,247,0.12); color:#c084fc; }
-    .cat-tag.cat-5  { background:rgba(255,107,53,0.12); color:#ff9a6c; }
-    .cat-tag.cat-6  { background:rgba(0,230,118,0.12);  color:#00e676; }
-    .cat-tag.cat-7  { background:rgba(255,61,90,0.12);  color:#ff6b8a; }
-    .cat-tag.cat-8  { background:rgba(255,215,64,0.12); color:#ffe082; }
-    .cat-tag.cat-9  { background:rgba(0,212,255,0.12);  color:#80e9ff; }
-    .cat-tag.cat-10 { background:rgba(168,85,247,0.12); color:#d4a0ff; }
-
-    .urgente-badge {
-      font-family:var(--mono); font-size:9px;
-      color:var(--red); background:rgba(255,61,90,0.1);
-      border:1px solid rgba(255,61,90,0.3);
-      border-radius:3px; padding:2px 7px;
-      animation:blinkTag 1.2s ease-in-out 5;
-      display:none;
-    }
-    .card.destaque .urgente-badge { display:inline-block; }
-
-    @keyframes blinkTag {
-      0%,100% { opacity:1; } 50% { opacity:0.2; }
-    }
-
-    .card-time { font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-left:auto; }
-
+    /* Título */
     .card-title {
-      font-size:14px; font-weight:600;
-      color:var(--text-bright); line-height:1.5;
-      margin-bottom:5px; text-decoration:none; display:block;
+      display: block; font-size: 14px; font-weight: 600;
+      color: var(--txt); line-height: 1.45; margin-bottom: 9px;
+      transition: color .15s;
     }
-    .card-title:hover { color:var(--accent); }
+    .card-title:hover { color: var(--blue); }
 
-    .card-source { font-family:var(--mono); font-size:10px; color:var(--text-dim); }
+    /* Highlight de busca */
+    .hl { background: rgba(251,191,36,.35); color: var(--txt); border-radius: 2px; padding: 0 1px; }
 
-    /* SIDEBAR */
-    .sidebar {
-      border-left:1px solid var(--border);
-      background:var(--panel); overflow-y:auto;
-      scrollbar-width:thin; scrollbar-color:var(--border) transparent;
-    }
-    .sidebar::-webkit-scrollbar { width:4px; }
-    .sidebar::-webkit-scrollbar-thumb { background:var(--border); }
+    /* Rodapé */
+    .card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .card-source { font-size: 11px; color: var(--txt3); font-weight: 500; flex-shrink: 0; }
 
-    .sidebar-section { padding:16px; border-bottom:1px solid var(--border); }
-
-    .sidebar-title {
-      font-family:var(--mono); font-size:9px;
-      letter-spacing:0.15em; color:var(--text-dim);
-      text-transform:uppercase; margin-bottom:12px;
+    /* Pills coloridas por categoria */
+    .cat-pills { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+    .cat-pill {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 2px 7px; border-radius: 100px;
+      font-size: 10px; font-weight: 600; white-space: nowrap;
+      border: 1px solid transparent;
     }
 
-    .stat-row {
-      display:flex; justify-content:space-between;
-      align-items:center; padding:6px 0;
-      border-bottom:1px solid rgba(13,31,60,0.5);
+    /* Dismiss */
+    .btn-dismiss {
+      position: absolute; bottom: 10px; right: 12px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(255,255,255,.04); border: 1px solid var(--border);
+      color: var(--txt3); font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 1; transition: background .15s, color .15s, border-color .15s, transform .15s;
     }
-    .stat-row:last-child { border-bottom:none; }
-
-    .stat-label { font-size:10px; color:var(--text-dim); display:flex; align-items:center; gap:6px; }
-    .stat-icon { font-size:13px; }
-    .stat-value { font-family:var(--mono); font-size:12px; font-weight:600; color:var(--text-bright); }
-
-    .bar-wrap { margin-top:4px; height:2px; background:var(--border); border-radius:1px; overflow:hidden; }
-    .bar-fill { height:100%; border-radius:1px; transition:width 0.6s ease; }
-
-    #status-msg { font-family:var(--mono); font-size:10px; color:var(--text-dim); text-align:center; }
-
-    .empty-state { text-align:center; padding:60px 20px; color:var(--text-dim); }
-    .empty-state .icon { font-size:32px; margin-bottom:12px; opacity:0.4; }
-    .empty-state p { font-family:var(--mono); font-size:12px; }
-
-    .loading { display:flex; align-items:center; justify-content:center; gap:8px; padding:40px; color:var(--text-dim); font-family:var(--mono); font-size:12px; }
-    .loading-dots span { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent); margin:0 2px; animation:bounce 1.2s infinite; }
-    .loading-dots span:nth-child(2) { animation-delay:0.2s; }
-    .loading-dots span:nth-child(3) { animation-delay:0.4s; }
-
-    @keyframes bounce {
-      0%,80%,100% { transform:translateY(0); opacity:0.4; }
-      40% { transform:translateY(-6px); opacity:1; }
+    .btn-dismiss:hover {
+      background: rgba(244,63,94,.15); border-color: rgba(244,63,94,.5);
+      color: var(--critical); transform: scale(1.15);
     }
+
+    /* ================================================================
+       HEADER: sparkline + gauge de risco
+    ================================================================ */
+    .header-charts {
+      display: flex; align-items: center; gap: 14px;
+      padding: 0 16px; border-left: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .chart-box {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .chart-lbl {
+      font-size: 9px; color: var(--txt3); text-transform: uppercase;
+      letter-spacing: .1em; font-weight: 600;
+    }
+    #sparkline-canvas { display: block; }
+    #gauge-canvas { display: block; }
+
+    /* ================================================================
+       SIDEBAR v2: mini-map + donut
+    ================================================================ */
+    #minimap-container {
+      height: 180px; border-radius: var(--r-sm); overflow: hidden;
+      border: 1px solid var(--border); margin-bottom: 0;
+    }
+    #donut-canvas { display: block; margin: 0 auto; }
+    .donut-legend { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .donut-leg-row {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 11px; color: var(--txt2);
+    }
+    .donut-leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .donut-leg-val { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--txt); }
+
+    /* Barras de severidade animadas */
+    .sev-bar-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+    .sev-bar-lbl { font-size: 11px; width: 60px; flex-shrink: 0; }
+    .sev-bar-track {
+      flex: 1; height: 6px; background: var(--border);
+      border-radius: 3px; overflow: hidden;
+    }
+    .sev-bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+    .sev-bar-val { font-family: var(--mono); font-size: 11px; color: var(--txt); width: 24px; text-align: right; }
+
+    /* ================================================================
+       SKELETON & EMPTY
+    ================================================================ */
+    .skeleton {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); height: 92px;
+      animation: shimmer 1.4s ease-in-out infinite;
+    }
+    .skeleton:nth-child(2) { opacity: .7; }
+    .skeleton:nth-child(3) { opacity: .4; }
+    @keyframes shimmer { 0%,100%{opacity:.5} 50%{opacity:1} }
+
+    .empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 12px; padding: 60px 24px;
+      text-align: center; color: var(--txt3);
+    }
+    .empty-icon  { font-size: 36px; opacity: .4; }
+    .empty-title { font-size: 15px; font-weight: 600; color: var(--txt2); }
+    .empty-desc  { font-size: 12px; line-height: 1.7; max-width: 280px; }
   </style>
 </head>
 <body>
+<div id="app">
 
-<div id="toast"></div>
+  <!-- ============================================================
+       HEADER
+  ============================================================ -->
+  <header id="header">
+    <div class="brand">
+      <div class="brand-icon">🔎</div>
+      <div class="brand-text">
+        <div class="brand-name">FraudMonitor</div>
+        <div class="brand-sub">Rodrigo Lerbo · Prevenção a Fraudes</div>
+      </div>
+    </div>
 
-<header>
-  <div class="header-left">
-    <div class="logo">FRAUD<span>//</span>MONITOR</div>
-    <div class="live-badge"><div class="live-dot"></div>AO VIVO</div>
-  </div>
-  <div class="header-right">
-    <span id="total-count">-- noticias</span>
-    <span id="countdown">atualizando...</span>
-    <span id="clock">--:--:--</span>
-    <button id="sound-toggle">🔇 SOM OFF</button>
-  </div>
-</header>
+    <div class="header-kpis">
+      <div class="kpi">
+        <div class="kpi-val" id="kpi-total">—</div>
+        <div class="kpi-lbl">Notícias</div>
+      </div>
+      <div class="kpi --critical">
+        <div class="kpi-val" id="kpi-crit">—</div>
+        <div class="kpi-lbl">Críticas</div>
+      </div>
+      <div class="kpi --high">
+        <div class="kpi-val" id="kpi-high">—</div>
+        <div class="kpi-lbl">Alta sev.</div>
+      </div>
+      <div class="kpi --impact">
+        <div class="kpi-val" id="kpi-impact">—</div>
+        <div class="kpi-lbl">Impacto Direto</div>
+      </div>
+      <div class="kpi --time">
+        <div class="kpi-val" id="kpi-upd">—</div>
+        <div class="kpi-lbl">Atualizado</div>
+      </div>
+    </div>
 
-<div class="filters" id="filters">
-  <button class="filter-btn active" data-cat="all">TODAS</button>
+    <!-- Sparkline + Gauge -->
+    <div class="header-charts">
+      <div class="chart-box">
+        <canvas id="sparkline-canvas" width="120" height="36" title="Volume de notícias nas últimas 12h"></canvas>
+        <div class="chart-lbl">Atividade 12h</div>
+      </div>
+      <div class="chart-box">
+        <canvas id="gauge-canvas" width="52" height="52" title="Índice de risco atual"></canvas>
+      </div>
+    </div>
+
+    <div class="header-ctrl">
+      <div class="live-dot loading" id="live-dot" title="Status"></div>
+      <span id="countdown">—</span>
+      <button class="btn-ctrl" id="btn-refresh" title="Forçar atualização agora">↻</button>
+      <button class="btn-ctrl" id="btn-map" title="Mapa de incidentes">🗺</button>
+      <button class="btn-ctrl" id="btn-itau-only" title="Filtrar por impacto direto">🏦</button>
+      <button class="btn-ctrl" id="btn-sound" title="Alertas sonoros">🔇</button>
+      <button class="btn-ctrl" id="btn-fav-only" title="Ver favoritos">☆</button>
+      <span id="clock">—</span>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       FILTROS
+  ============================================================ -->
+  <nav id="filters-bar">
+    <button class="ftab active" data-cat="all">
+      Todas <span class="badge" id="cnt-all">0</span>
+    </button>
+    <div class="fsep"></div>
+    <div id="cat-tabs"></div>
+    <div class="fsep"></div>
+    <div class="fcontrols">
+      <select class="fselect" id="f-severity">
+        <option value="all">Qualquer risco</option>
+        <option value="critical">Crítico (80+)</option>
+        <option value="high">Alto (60–79)</option>
+        <option value="medium">Médio (40–59)</option>
+        <option value="low">Baixo (&lt;40)</option>
+      </select>
+      <select class="fselect" id="f-sort">
+        <option value="date">Mais recentes</option>
+        <option value="severity">Maior risco</option>
+      </select>
+      <input type="text" id="search" placeholder="🔍  Buscar notícias...">
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       MAIN
+  ============================================================ -->
+  <main id="main">
+    <!-- Feed -->
+    <div id="feed">
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar">
+      <!-- Mini-mapa sempre visível -->
+      <div class="s-section" style="padding:10px;">
+        <div class="s-title">Mapa de Incidentes</div>
+        <div id="minimap-container"></div>
+        <div style="font-size:9px;color:var(--txt3);text-align:right;margin-top:4px;font-family:var(--mono);">
+          <span id="minimap-count">0</span> localizações · clique no pin para detalhes
+        </div>
+      </div>
+
+      <!-- Donut de categorias -->
+      <div class="s-section">
+        <div class="s-title">Distribuição por Categoria</div>
+        <canvas id="donut-canvas" width="180" height="140"></canvas>
+        <div class="donut-legend" id="donut-legend">—</div>
+      </div>
+
+      <!-- Barras de severidade -->
+      <div class="s-section">
+        <div class="s-title">Por Severidade</div>
+        <div id="dist-sev">—</div>
+      </div>
+
+      <div class="s-section">
+        <div class="s-title">Impacto Institucional</div>
+        <div id="dist-impact">—</div>
+      </div>
+      <div class="s-section">
+        <div class="s-title">Sistema</div>
+        <div class="st-row"><span class="st-lbl">Modo</span>     <span class="st-val" id="st-mode">detectando...</span></div>
+        <div class="st-row"><span class="st-lbl">Proxy</span>    <span class="st-val" id="st-proxy">—</span></div>
+        <div class="st-row"><span class="st-lbl">Janela</span>   <span class="st-val ok">48 horas</span></div>
+        <div class="st-row"><span class="st-lbl">Erros</span>    <span class="st-val" id="st-errors">0</span></div>
+        <div class="st-row"><span class="st-lbl">Ciclo</span>    <span class="st-val" id="st-cache">—</span></div>
+        <div class="st-row"><span class="st-lbl">Último fetch</span><span class="st-val" id="st-lastfetch">—</span></div>
+      </div>
+      <div class="s-section">
+        <div class="s-title">Favoritos</div>
+        <div class="st-row"><span class="st-lbl">Salvos</span>    <span class="st-val" id="st-favs">0</span></div>
+        <div class="st-row"><span class="st-lbl">Dispensadas</span><span class="st-val" id="st-dismissed">0</span></div>
+      </div>
+      <div class="s-section">
+        <div class="s-title">Arquivo</div>
+        <div class="st-row"><span class="st-lbl">Notícias arquivadas</span><span class="st-val" id="st-archive">0</span></div>
+        <div class="st-row"><span class="st-lbl">Período</span><span class="st-val ok">últimos 7 dias</span></div>
+        <button id="btn-open-archive" style="margin-top:10px;width:100%;padding:7px 0;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:4px;color:var(--blue);font-size:11px;font-weight:600;font-family:var(--mono);letter-spacing:.06em;cursor:pointer;">🗂 ABRIR ARQUIVO</button>
+      </div>
+    </aside>
+  </main>
 </div>
 
-<div class="main">
-  <div class="feed" id="feed">
-    <div class="loading">
-      <div class="loading-dots"><span></span><span></span><span></span></div>
-      Carregando noticias...
+<!-- MODAL MAPA -->
+<div id="map-modal">
+  <div id="map-wrap">
+    <div id="map-header">
+      <div>
+        <div id="map-title">🗺 Mapa de Incidentes</div>
+        <div id="map-sub">Localização extraída dos títulos · últimas 48h · <span id="map-count">0</span> notícias georreferenciadas</div>
+      </div>
+      <div id="map-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#f43f5e"></div>Crítico</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#fb923c"></div>Alto</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#fbbf24"></div>Médio</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#34d399"></div>Baixo</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#3b82f6;opacity:.5;border-radius:2px;width:14px;height:10px;"></div>Cluster</div>
+      </div>
+      <button id="map-close">✕</button>
     </div>
-  </div>
-  <div class="sidebar">
-    <div class="sidebar-section">
-      <div class="sidebar-title">Por categoria</div>
-      <div id="stats-list"></div>
-    </div>
-    <div class="sidebar-section">
-      <div class="sidebar-title">Status</div>
-      <div id="status-msg">Aguardando...</div>
-    </div>
+    <div id="map-container"></div>
   </div>
 </div>
 
+<!-- MODAL ARQUIVO -->
+<div id="archive-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(4,8,15,.88);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+  <div style="width:820px;max-width:95vw;max-height:85vh;background:#111827;border:1px solid #1e2a42;border-radius:10px;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.7);">
+    <div style="padding:16px 20px;border-bottom:1px solid #1e2a42;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div>
+        <div style="font-size:15px;font-weight:700;">🗂 Arquivo de Notícias</div>
+        <div style="font-size:10px;color:#4a5a7a;margin-top:2px;letter-spacing:.08em;text-transform:uppercase;">Notícias expiradas · últimos 7 dias · <span id="archive-count">0</span> itens</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="archive-search" type="text" placeholder="Filtrar arquivo..." style="height:28px;padding:0 10px;border-radius:4px;border:1px solid #1e2a42;background:#161d2e;color:#e2e8f6;font-size:12px;outline:none;width:180px;">
+        <button id="btn-archive-clear" style="padding:4px 12px;border-radius:4px;border:1px solid rgba(244,63,94,.3);background:rgba(244,63,94,.08);color:#f43f5e;font-size:11px;font-family:var(--mono);cursor:pointer;">🗑 Limpar tudo</button>
+        <button id="btn-close-archive" style="width:28px;height:28px;border-radius:4px;border:1px solid #1e2a42;background:#161d2e;color:#8b97b8;font-size:16px;cursor:pointer;">✕</button>
+      </div>
+    </div>
+    <div id="archive-feed" style="overflow-y:auto;padding:14px 20px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:#1e2a42 transparent;"></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<!-- ================================================================
+     JAVASCRIPT — Módulos
+================================================================ -->
 <script>
-const CATEGORIAS = [
-  { id:0,  icone:"🏦", nome:"FRAUDES BANCARIAS",     query:"fraude bancaria brasil banco",                                          destaque:false },
-  { id:1,  icone:"📱", nome:"GOLPES DIGITAIS E PIX", query:"golpe pix fraude digital banco brasil",                                 destaque:false },
-  { id:2,  icone:"🚔", nome:"OPERACOES POLICIAIS",   query:"operacao policia federal civil fraude bancaria crime financeiro brasil", destaque:true  },
-  { id:3,  icone:"🔍", nome:"INVESTIGACOES",         query:"investigacao fraude financeira banco brasil ministerio publico",         destaque:false },
-  { id:4,  icone:"⚠️", nome:"NOVOS GOLPES",          query:"novo golpe bancario modalidade fraude banco brasil",                    destaque:false },
-  { id:5,  icone:"🚨", nome:"SEQUESTRO DE GERENTE",  query:"sequestro gerente banco brasil",                                        destaque:true  },
-  { id:6,  icone:"💰", nome:"CRIMES CONTRA BANCOS",  query:"crime contra banco brasil roubo furto",                                 destaque:true  },
-  { id:7,  icone:"🦹", nome:"ASSALTO A BANCO",       query:"assalto roubo banco agencia bancaria brasil",                           destaque:true  },
-  { id:8,  icone:"💸", nome:"SAIDINHA BANCARIA",     query:"saidinha bancaria golpe brasil vitima",                                 destaque:false },
-  { id:9,  icone:"💥", nome:"EXPLOSAO DE AGENCIA",   query:"explosao agencia bancaria caixa eletronico brasil",                    destaque:true  },
-  { id:10, icone:"💻", nome:"CANGACO DIGITAL",       query:"cangaco digital ataque banco sistema financeiro brasil",                destaque:true  },
+'use strict';
+
+/* ----------------------------------------------------------------
+   CONFIGURAÇÃO
+---------------------------------------------------------------- */
+const CFG = {
+  REFRESH_SEC:      75,
+  WINDOW_HOURS:     48,
+  MAX_ITEMS:        300,
+  CACHE_TTL_MS:     60 * 1000,
+  FETCH_TIMEOUT_MS: 15000,
+  BATCH_SIZE:       6,
+  API: '/api/news',
+
+  // ▼▼▼ COLE AQUI A URL DO SEU GOOGLE APPS SCRIPT ▼▼▼
+  // Após implantar o fraudmonitor-proxy.gs, a URL tem este formato:
+  // https://script.google.com/macros/s/SEU_ID_AQUI/exec
+  GAS_PROXY: 'https://script.google.com/macros/s/AKfycbyoBdrYX4cKLNKoKsa0EDD1ADaDxKRmQV6Y3VEw259cX0HH4scnr3F7Ov-yVgIETnTvjQ/exec',   // ← cole a URL entre as aspas
+};
+
+/* ----------------------------------------------------------------
+   CATEGORIAS — fonte única de verdade para frontend e backend
+---------------------------------------------------------------- */
+const CATS = [
+  {
+    id: 0, key: 'fraudes',    name: 'Fraudes Bancárias',   icon: '🏦',
+    color: '#3b82f6', destaque: false,
+    kw: ['fraude bancaria','fraude bancária','estelionato','conta fraudada','fraude financeira',
+         'crime financeiro','fraude eletronica','fraude eletrônica','desvio dinheiro','lavagem dinheiro',
+         'fraude em banco','conto do vigario']
+  },
+  {
+    id: 1, key: 'pix',       name: 'Golpes & PIX',        icon: '📱',
+    color: '#22d3ee', destaque: false,
+    kw: ['golpe pix','fraude pix','golpe whatsapp','phishing','golpe digital','golpe online',
+         'clonagem cartao','engenharia social','falso funcionario','falso funcionário',
+         'motoboy golpe','link falso banco','golpe bancario','golpe bancário']
+  },
+  {
+    id: 2, key: 'operacoes', name: 'Operações Policiais', icon: '🚔',
+    color: '#f43f5e', destaque: true,
+    kw: ['operacao policial','operação policial','policia federal','polícia federal',
+         'policia civil','polícia civil','mandado prisao','mandado prisão','mandado busca',
+         'desarticulada quadrilha','preso suspeito','deflagrada operacao','operacao especial']
+  },
+  {
+    id: 3, key: 'invest',    name: 'Investigações',       icon: '🔍',
+    color: '#fbbf24', destaque: false,
+    kw: ['investigacao','investigação','inquerito','inquérito','ministerio publico','ministério público',
+         'CPI','auditoria banco','apuracao fraude','sindicancia','comissao parlamentar']
+  },
+  {
+    id: 4, key: 'novos',     name: 'Novos Golpes',        icon: '⚠️',
+    color: '#a78bfa', destaque: false,
+    kw: ['novo golpe','nova modalidade','novo metodo','novo método','alerta fraude',
+         'golpe surgiu','tendencia fraude','tendência fraude','cuidado golpe','golpe crescimento']
+  },
+  {
+    id: 5, key: 'sequestro', name: 'Sequestro de Gerente',icon: '🚨',
+    color: '#fb923c', destaque: true,
+    kw: ['sequestro gerente','gerente sequestrado','funcionario banco sequestrado',
+         'funcionário banco sequestrado','refem banco','refém banco',
+         'sequestro relampago banco','cativeiro banco']
+  },
+  {
+    id: 6, key: 'crimes',    name: 'Crimes contra Bancos',icon: '💰',
+    color: '#34d399', destaque: true,
+    kw: ['crime contra banco','ataque agencia bancaria','fraude contra banco',
+         'prejuizo banco','prejuízo banco','ataque banco financeiro','dano banco']
+  },
+  {
+    id: 7, key: 'assalto',   name: 'Assalto a Banco',     icon: '🦹',
+    color: '#f43f5e', destaque: true,
+    kw: ['assalto banco','roubo agencia','roubo agência','assaltou banco',
+         'quadrilha assalto banco','roubo armado banco','assaltantes banco',
+         'bando invade banco','render funcionarios banco',
+         'quadrilha banco brasil','armado agencia bancaria','gang assalto banco']
+  },
+  {
+    id: 8, key: 'saidinha',  name: 'Saidinha Bancária',   icon: '💸',
+    color: '#fbbf24', destaque: false,
+    kw: ['saidinha bancaria','saidinha bancária','golpe saque','roubo apos saque',
+         'roubo após saque','vitima saque','vítima saque','abordado saida banco','seguido saque']
+  },
+  {
+    id: 9, key: 'explosao',  name: 'Explosão de Agência', icon: '💥',
+    color: '#22d3ee', destaque: true,
+    kw: ['explosao agencia','explosão agência','explodiu agencia','explodiu agência',
+         'caixa eletronico explodido','caixa eletrônico explodido','explosivo banco',
+         'arrombamento explosivo','bomba agencia','bomba banco']
+  },
+  {
+    id: 10, key: 'cangaco',  name: 'Cangaço Digital',     icon: '💻',
+    color: '#a78bfa', destaque: true,
+    kw: ['cangaco digital','cangaço digital','ataque hacker banco','invasao sistema bancario',
+         'invasão sistema bancário','ransomware banco','ataque cibernetico banco',
+         'hack banco','vazamento dados banco','sistema bancario invadido',
+         'ciberataque banco','crime cibernetico financeiro',
+         'ataque hacker conta','hacker prefeitura','desvio hacker','fraude eletronica prefeitura',
+         'ataque conta bancaria','invasao conta bancaria','ataque banco prefeitura']
+  },
 ];
 
-const CORES = ["#1a6bff","#00d4ff","#ff3d5a","#ffd740","#a855f7","#ff6b35","#00e676","#ff3d5a","#ffd740","#00d4ff","#a855f7"];
-const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
+/* ----------------------------------------------------------------
+   ENGINE DE CLASSIFICAÇÃO
+   Normaliza texto, faz match de keywords e calcula score de risco
+---------------------------------------------------------------- */
+const SEV_RULES = [
+  { pts: 35, words: ['sequestro','explosao','explosão','explodiu','morto','morte','bomba','preso em flagrante','milionario'] },
+  { pts: 25, words: ['assalto armado','roubo armado','refem','refém','cativeiro','quadrilha presa','render funcionarios','desvio milionario'] },
+  { pts: 15, words: ['fraude','golpe','preso','condenado','investigado','mandado','desvio','ataque hacker','ransomware','vazamento dados'] },
+  { pts: 8,  words: ['alerta','suspeito','denuncia','vitima','indiciado','estelionato','inquerito','phishing','cangaco'] },
+  { pts: 3,  words: ['prevencao','como evitar','dica','cuidado','orientacao','alerta banco'] },
+];
 
-let todasNoticias = [];
-let filtroAtivo = "all";
-let countdownVal = 60;
-let countdownTimer = null;
-let somAtivo = false;
-let idsConhecidos = new Set();
-let audioCtx = null;
+// Fontes confiáveis — boost de +5pts no score
+const TRUSTED_SOURCES = [
+  'g1','globo','folha','uol','estadao','veja','exame','infomoney',
+  'agencia brasil','metropoles','cnn brasil','r7','terra','band',
+  'correio braziliense','o globo','valor economico','istoé',
+];
 
-// ---- SOM DE SIRENE ----
-function tocarSirene(urgente = false) {
-  if (!somAtivo) return;
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const duracao = urgente ? 1.5 : 0.8;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.type = "sawtooth";
-
-    const inicio = audioCtx.currentTime;
-    const ciclos = urgente ? 3 : 2;
-
-    // Simula sirene oscilando entre dois tons
-    for (let i = 0; i < ciclos; i++) {
-      const t = inicio + i * (duracao / ciclos);
-      osc.frequency.setValueAtTime(urgente ? 800 : 600, t);
-      osc.frequency.linearRampToValueAtTime(urgente ? 1200 : 900, t + (duracao / ciclos / 2));
-      osc.frequency.linearRampToValueAtTime(urgente ? 800 : 600, t + (duracao / ciclos));
-    }
-
-    gain.gain.setValueAtTime(0, inicio);
-    gain.gain.linearRampToValueAtTime(0.18, inicio + 0.05);
-    gain.gain.linearRampToValueAtTime(0.18, inicio + duracao - 0.1);
-    gain.gain.linearRampToValueAtTime(0, inicio + duracao);
-
-    osc.start(inicio);
-    osc.stop(inicio + duracao);
-  } catch(e) {}
+function norm(s) {
+  return (s||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-document.getElementById("sound-toggle").addEventListener("click", function() {
-  somAtivo = !somAtivo;
-  this.textContent = somAtivo ? "🔊 SOM ON" : "🔇 SOM OFF";
-  this.classList.toggle("on", somAtivo);
-  if (somAtivo) tocarSirene(false); // beep de confirmação
-});
-
-// ---- TOAST ----
-function mostrarToast(msg, urgente = false) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.style.display = "block";
-  t.style.border = `1px solid ${urgente ? "#ff3d5a" : "#00e676"}`;
-  t.style.color = urgente ? "#ff3d5a" : "#00e676";
-  t.style.background = urgente ? "#1a0505" : "#051a0a";
-  setTimeout(() => { t.style.display = "none"; }, 4000);
+/* ── Score 2.0: detecta valor monetário no título ─────────────────── */
+function extractMonetaryValue(title) {
+  // Captura padrões: R$ 12 milhões / R$ 500 mil / R$ 2,3 bilhões
+  const t = title.toLowerCase();
+  const mBi = t.match(/r\$\s*([\d,\.]+)\s*bilh/);
+  const mMi = t.match(/r\$\s*([\d,\.]+)\s*milh/);
+  const mMl = t.match(/r\$\s*([\d,\.]+)\s*mil/);
+  if (mBi) return parseFloat(mBi[1].replace(',','.')) * 1_000_000_000;
+  if (mMi) return parseFloat(mMi[1].replace(',','.')) * 1_000_000;
+  if (mMl) return parseFloat(mMl[1].replace(',','.')) * 1_000;
+  return 0;
 }
 
-// ---- UTILS ----
-function limpar(txt) {
-  return (txt || "")
-    .replace(/[^\x20-\x7E\xC0-\xFF]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+function classify(title, source) {
+  const t = norm(title);
 
-function timeAgo(dateStr) {
-  const diff = Math.floor((Date.now() - new Date(dateStr)) / 60000);
-  if (diff < 1) return "agora";
-  if (diff < 60) return `${diff}min`;
-  return `${Math.floor(diff/60)}h`;
-}
+  // Score por categoria — cada keyword vale 10 pts
+  const scored = CATS.map(c => ({
+    id: c.id,
+    s: c.kw.reduce((a, kw) => a + (t.includes(norm(kw)) ? 10 : 0), 0)
+  }));
 
-// ---- BUSCA ----
-async function buscarCategoria(cat) {
-  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(cat.query)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
-  const url = PROXY + encodeURIComponent(rssUrl);
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    if (!data.items) return [];
-    const limite24h = Date.now() - 24 * 60 * 60 * 1000;
-    return data.items
-      .filter(item => new Date(item.pubDate).getTime() > limite24h)
-      .slice(0, 5)
-      .map(item => {
-        const tituloRaw = limpar(item.title || "");
-        const partes = tituloRaw.split(" - ");
-        const fonte = partes.length > 1 ? partes.pop() : "";
-        const titulo = partes.join(" - ");
-        return {
-          id: item.link,
-          titulo, fonte,
-          link: item.link,
-          pubDate: item.pubDate,
-          catId: cat.id,
-          catNome: cat.nome,
-          catIcone: cat.icone,
-          destaque: cat.destaque,
-        };
-      });
-  } catch(e) { return []; }
-}
+  const topCats = scored.filter(x => x.s > 0)
+    .sort((a,b) => b.s - a.s).slice(0,3).map(x => x.id);
 
-async function buscarTudo() {
-  setStatus("Buscando noticias...");
-  const resultados = await Promise.all(CATEGORIAS.map(buscarCategoria));
-  const mapa = new Map();
-  resultados.flat().forEach(n => { if (!mapa.has(n.id)) mapa.set(n.id, n); });
-  const novas = Array.from(mapa.values())
-    .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-
-  // Detecta novas notícias e dispara alertas
-  if (idsConhecidos.size > 0) {
-    const novasEntradas = novas.filter(n => !idsConhecidos.has(n.id));
-    if (novasEntradas.length > 0) {
-      const temUrgente = novasEntradas.some(n => n.destaque);
-      tocarSirene(temUrgente);
-      mostrarToast(
-        temUrgente
-          ? `🚨 ALERTA: ${novasEntradas.length} nova(s) noticia(s) urgente(s)!`
-          : `🔔 ${novasEntradas.length} nova(s) noticia(s) encontrada(s)`,
-        temUrgente
-      );
-    }
+  if (!topCats.length) {
+    const bankTerms = [
+      'banco','bancari','financei','fraude','golpe','estelionato',
+      'caixa','agencia','agência','pix','cartao','cartão','conta',
+      'emprestimo','credito','debito','boleto','transferencia','saque',
+      'crime financeiro','lavagem','coaf','bacen','febraban',
+      'policia federal','ministerio publico','inquerito','investigacao',
+    ];
+    if (bankTerms.some(kw => t.includes(norm(kw)))) topCats.push(0);
   }
 
-  novas.forEach(n => idsConhecidos.add(n.id));
-  todasNoticias = novas;
-
-  renderFeed();
-  renderStats();
-  atualizarFiltros();
-  setStatus(`Ultima atualizacao: ${new Date().toLocaleTimeString("pt-BR")}`);
-  document.getElementById("total-count").textContent = `${todasNoticias.length} noticias`;
-}
-
-// ---- RENDER ----
-function renderFeed() {
-  const feed = document.getElementById("feed");
-  const lista = filtroAtivo === "all"
-    ? todasNoticias
-    : todasNoticias.filter(n => n.catId === parseInt(filtroAtivo));
-
-  if (lista.length === 0) {
-    feed.innerHTML = `<div class="empty-state"><div class="icon">[ ]</div><p>Nenhuma noticia nas ultimas 24h</p></div>`;
-    return;
-  }
-
-  feed.innerHTML = lista.map(n => `
-    <div class="card cat-${n.catId}${n.destaque ? " destaque" : ""}">
-      <div class="card-icon">${n.catIcone}</div>
-      <div class="card-body">
-        <div class="card-meta">
-          <span class="cat-tag cat-${n.catId}">${n.catNome}</span>
-          <span class="urgente-badge">! URGENTE</span>
-          <span class="card-time">${timeAgo(n.pubDate)}</span>
-        </div>
-        <a class="card-title" href="${n.link}" target="_blank" rel="noopener">${n.titulo}</a>
-        <div class="card-source">${n.fonte}</div>
-      </div>
-    </div>
-  `).join("");
-}
-
-function renderStats() {
-  const list = document.getElementById("stats-list");
-  const total = todasNoticias.length || 1;
-  list.innerHTML = CATEGORIAS.map(cat => {
-    const count = todasNoticias.filter(n => n.catId === cat.id).length;
-    const pct = Math.round((count / total) * 100);
-    return `
-      <div class="stat-row">
-        <div class="stat-label">
-          <span class="stat-icon">${cat.icone}</span>
-          <span>${cat.nome}</span>
-        </div>
-        <span class="stat-value">${count}</span>
-      </div>
-      <div class="bar-wrap">
-        <div class="bar-fill" style="width:${pct}%;background:${CORES[cat.id]}"></div>
-      </div>
-    `;
-  }).join("");
-}
-
-function atualizarFiltros() {
-  const container = document.getElementById("filters");
-  const botoes = CATEGORIAS.map(cat => {
-    const count = todasNoticias.filter(n => n.catId === cat.id).length;
-    const ativo = filtroAtivo == cat.id ? " active" : "";
-    return `<button class="filter-btn${ativo}" data-cat="${cat.id}">${cat.icone} ${cat.nome} (${count})</button>`;
-  }).join("");
-  container.innerHTML = `<button class="filter-btn${filtroAtivo === "all" ? " active" : ""}" data-cat="all">TODAS (${todasNoticias.length})</button>` + botoes;
-  container.querySelectorAll(".filter-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      filtroAtivo = btn.dataset.cat;
-      container.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      renderFeed();
-    });
+  // Base: keywords de severidade
+  let sev = 20;
+  SEV_RULES.forEach(({ pts, words }) => {
+    words.forEach(w => { if (t.includes(norm(w))) sev += pts; });
   });
+
+  // Boost: categorias destaque
+  if (topCats.some(id => CATS[id]?.destaque)) sev = Math.min(sev + 15, 100);
+
+  // Boost: múltiplas categorias = evento complexo
+  if (topCats.length >= 2) sev = Math.min(sev + 8, 100);
+
+  // Boost: valor monetário detectado
+  const val = extractMonetaryValue(title);
+  if      (val >= 1_000_000_000) sev = Math.min(sev + 25, 100); // bilhões
+  else if (val >= 10_000_000)    sev = Math.min(sev + 18, 100); // 10M+
+  else if (val >= 1_000_000)     sev = Math.min(sev + 12, 100); // 1M+
+  else if (val >= 100_000)       sev = Math.min(sev + 6,  100); // 100k+
+
+  // Boost: fonte confiável
+  const srcNorm = norm(source || '');
+  if (TRUSTED_SOURCES.some(s => srcNorm.includes(s))) sev = Math.min(sev + 5, 100);
+
+  return { cats: topCats, sev: Math.min(sev, 100), monetaryValue: val };
 }
 
-function setStatus(msg) {
-  document.getElementById("status-msg").textContent = msg;
+function sevInfo(score) {
+  if (score >= 80) return { label:'CRÍTICO', cls:'--critical', color:'var(--critical)' };
+  if (score >= 60) return { label:'ALTO',    cls:'--high',     color:'var(--high)' };
+  if (score >= 40) return { label:'MÉDIO',   cls:'--medium',   color:'var(--medium)' };
+  return               { label:'BAIXO',   cls:'--low',      color:'var(--low)' };
 }
 
-function iniciarContagem() {
-  countdownVal = 60;
-  clearInterval(countdownTimer);
-  countdownTimer = setInterval(() => {
-    countdownVal--;
-    document.getElementById("countdown").textContent = `prox. em ${countdownVal}s`;
-    if (countdownVal <= 0) {
-      clearInterval(countdownTimer);
-      buscarTudo().then(iniciarContagem);
+/* ----------------------------------------------------------------
+   ENGINE DE IMPACTO INSTITUCIONAL
+   Detecta menções a bancos e calcula impacto para a operação
+---------------------------------------------------------------- */
+const INSTITUTIONS = {
+  // Nível DIRETO — menciona explicitamente o grupo Itaú
+  direct: [
+    'itau unibanco','itaú unibanco',
+    'itaú','itau',
+    'unibanco',
+    'app itau','app itaú',
+    'banco itau','banco itaú',
+    'cartao itau','cartão itaú',
+  ],
+  // Nível RELACIONADO — reguladores, entidades setoriais que impactam o Itaú
+  related: [
+    'banco central','bacen','febraban','cvm','coaf',
+    'bcb','susep','previc',
+    'sistema financeiro nacional','sfn',
+  ],
+  // Nível SETORIAL — concorrentes e bancos públicos (sinal de ameaça que pode chegar)
+  sector: [
+    // Privados
+    'bradesco','santander','nubank','inter','c6 bank','btg','xp investimentos',
+    'safra','citibank','hsbc brasil','original banco','next banco','picpay',
+    // Públicos — formas curtas que aparecem em títulos de manchetes
+    'caixa economica','caixa econômica',
+    'caixa federal',
+    'banco do brasil',
+    // "caixa" sozinho em contexto bancário (com boundary check no detectImpact)
+    'conta da caixa','conta caixa','agencia da caixa','agência da caixa',
+    'caixa economica federal','cef',
+    'bb conta','conta bb','banco bb',
+    'banco publico','banco público','banco federal',
+    // Cooperativas e desenvolvimento
+    'sicredi','sicoob','banrisul','brb','banese','banpara','banestes',
+  ],
+};
+
+function detectImpact(title) {
+  const t = norm(title);
+  const found = { direct:[], related:[], sector:[] };
+
+  for (const [tier, terms] of Object.entries(INSTITUTIONS)) {
+    for (const term of terms) {
+      if (t.includes(norm(term)) && !found[tier].includes(term)) {
+        found[tier].push(term);
+      }
     }
-  }, 1000);
+  }
+
+  // Prioridade: direct > related > sector > none
+  if (found.direct.length)  return { level:'direct',  banks: found.direct,  impactScore: 100 };
+  if (found.related.length) return { level:'related', banks: found.related, impactScore:  60 };
+  if (found.sector.length)  return { level:'sector',  banks: found.sector,  impactScore:  30 };
+  return                           { level:'none',    banks: [],            impactScore:   0 };
 }
 
-function atualizarRelogio() {
-  document.getElementById("clock").textContent = new Date().toLocaleTimeString("pt-BR");
+function impactBadgeHTML(impact) {
+  if (!impact || impact.level === 'none') return '';
+  const labels = {
+    direct:  '🏦 ITAÚ — IMPACTO DIRETO',
+    related: '🏛 REGULADOR/SETOR',
+    sector:  '🏢 CONCORRENTE',
+  };
+  return `<span class="impact-badge ${impact.level}">${labels[impact.level]}</span>`;
 }
 
-buscarTudo().then(iniciarContagem);
-setInterval(atualizarRelogio, 1000);
-atualizarRelogio();
+/* ----------------------------------------------------------------
+   DATA SERVICE
+   Detecta backend vs proxy, faz fetch em batch, deduplica e cria cache
+---------------------------------------------------------------- */
+// Queries PRIORITÁRIAS — buscadas em todo ciclo (alta relevância, eventos graves)
+const QUERIES_PRIORITY = [
+  'fraude bancaria',
+  'golpe pix',
+  'fraude pix',
+  'assalto banco',
+  'sequestro banco',
+  'explosao agencia bancaria',
+  'cangaco digital',
+  'ataque hacker banco',          // tag explícita solicitada
+  'ataque hacker conta bancaria', // variação com "conta"
+  'policia federal fraude',
+  'preso fraude bancaria',
+  'conta bancaria prefeitura',    // cobre ataques a entes públicos (caso NSC)
+];
+
+// Queries ROTATIVAS — divididas em 3 grupos, cada grupo buscado em ciclos alternados
+// Grupo A: busca no ciclo 0, 3, 6...
+const QUERIES_A = [
+  'fraude banco',
+  'estelionato banco',
+  'golpe bancario',
+  'fraude pix vitima',
+  'golpe whatsapp banco',
+  'operacao policia banco',
+  'quadrilha presa banco',
+  'investigacao fraude banco',
+  'novo golpe banco',
+  'saidinha bancaria',
+  'caixa eletronico explodido',
+];
+
+// Grupo B: busca no ciclo 1, 4, 7...
+const QUERIES_B = [
+  'crime financeiro banco',
+  'clonagem cartao',
+  'phishing banco',
+  'mandado prisao fraude',
+  'inquerito fraude financeira',
+  'alerta fraude banco',
+  'gerente banco sequestrado',
+  'roubo agencia bancaria',
+  'roubo apos saque',
+  'bomba banco',
+  'ransomware banco',
+];
+
+// Grupo C: busca no ciclo 2, 5, 8...
+const QUERIES_C = [
+  'golpe financeiro novo',
+  'ministerio publico banco',
+  'refem banco',
+  'quadrilha assalto agencia',
+  'golpe caixa eletronico',
+  'invasao banco sistema',
+  'vazamento dados banco',
+  'vitima golpe banco',
+  'prejuizo fraude banco',
+  'preso estelionato',
+  'golpe conta bancaria',
+];
+
+// Todas as queries juntas (para referência e busca inicial completa)
+const QUERIES = [...new Set([...QUERIES_PRIORITY, ...QUERIES_A, ...QUERIES_B, ...QUERIES_C])];
+
+const PROXIES = [
+  {
+    name: 'allorigins',
+    url:  rss => `https://api.allorigins.win/get?url=${encodeURIComponent(rss)}`,
+    read: async r => { const d = await r.json(); return d.contents; },
+    mode: 'xml'
+  },
+  {
+    name: 'corsproxy.io',
+    url:  rss => `https://corsproxy.io/?${encodeURIComponent(rss)}`,
+    read: async r => r.text(),
+    mode: 'xml'
+  },
+  {
+    name: 'rss2json',
+    url:  rss => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rss)}`,
+    read: async r => r.json(),
+    mode: 'json'
+  },
+];
+
+class DataSvc {
+  constructor() {
+    this.proxy      = null;
+    this.backend    = false;
+    this.gasProxy   = false;       // Google Apps Script proxy
+    this.qcache     = new Map();
+    this.errors     = 0;
+    this.cycleCount = 0;
+    this.lastFetch  = null;
+  }
+
+  rssUrl(q) {
+    // Cache-busting a cada 5 minutos — força o CDN do Google a devolver resultado fresco
+    const bust = Math.floor(Date.now() / (5 * 60_000));
+    return `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=pt-BR&gl=BR&ceid=BR:pt-419&_=${bust}`;
+  }
+
+  async tfetch(url, ms = CFG.FETCH_TIMEOUT_MS) {
+    const ctrl = new AbortController();
+    const id = setTimeout(() => ctrl.abort(), ms);
+    try { return await fetch(url, { signal: ctrl.signal }); }
+    finally { clearTimeout(id); }
+  }
+
+  async detectSource() {
+    // 0. Tenta Google Apps Script Proxy (mais confiável)
+    if (CFG.GAS_PROXY) {
+      try {
+        const r = await this.tfetch(CFG.GAS_PROXY + '?q=fraude+banco', 8000);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.ok && Array.isArray(d.data)) {
+            this.gasProxy = true;
+            this.setSt('mode',  'Apps Script ✓', 'ok');
+            this.setSt('proxy', 'Google GAS', 'ok');
+            return true;
+          }
+        }
+      } catch(_) {}
+    }
+
+    // 1. Tenta backend Node.js
+    try {
+      const r = await this.tfetch(CFG.API, 3000);
+      if (r.ok) {
+        this.backend = true;
+        this.setSt('mode',  'backend ✓', 'ok');
+        this.setSt('proxy', 'N/A', 'ok');
+        return true;
+      }
+    } catch(_) {}
+
+    // 2. Tenta proxies externos (fallback)
+    const testUrl = this.rssUrl('fraude banco');
+    for (const p of PROXIES) {
+      try {
+        const r = await this.tfetch(p.url(testUrl));
+        if (!r.ok) continue;
+        const content = await p.read(r.clone ? r.clone() : r);
+        const str = typeof content === 'string'
+          ? content
+          : (content?.contents || JSON.stringify(content));
+        if (str && str.length > 200 && (str.includes('<item>') || str.includes('"items"'))) {
+          this.proxy = p;
+          this.setSt('mode',  'proxy externo', 'ok');
+          this.setSt('proxy', p.name + ' ✓', 'ok');
+          return true;
+        }
+      } catch(_) {}
+    }
+
+    this.setSt('mode',  'offline', 'err');
+    this.setSt('proxy', 'nenhum — configure GAS_PROXY', 'err');
+    return false;
+  }
+
+  parseXML(raw) {
+    const str = typeof raw === 'string' ? raw : (raw?.contents || '');
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(str, 'text/xml');
+    if (doc.querySelector('parsererror')) return [];
+
+    return Array.from(doc.querySelectorAll('item')).map(el => {
+      const title  = el.querySelector('title')?.textContent  || '';
+      const pubDate= el.querySelector('pubDate')?.textContent || '';
+      const source = el.querySelector('source')?.textContent || '';
+
+      // Google News RSS: <link> é um text node
+      let url = '';
+      const linkEl = el.querySelector('link');
+      if (linkEl) url = linkEl.textContent?.trim() || '';
+      if (!url) {
+        // fallback: next sibling text node
+        const nodes = Array.from(el.childNodes);
+        const li = nodes.findIndex(n => n.nodeName === 'link');
+        if (li >= 0) url = nodes.slice(li+1).find(n => n.nodeType === 3)?.nodeValue?.trim() || '';
+      }
+
+      return { title: this.clean(title), url, source: this.clean(source) || this.domain(url), pubDate };
+    });
+  }
+
+  clean(s) {
+    return (s||'')
+      .replace(/<[^>]+>/g,'')
+      .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'")
+      .replace(/[^\x20-\x7E\xC0-\xFF\u00C0-\u024F]/g,'')
+      .replace(/\s+/g,' ').trim();
+  }
+
+  domain(url) {
+    try { return new URL(url).hostname.replace(/^www\./,''); } catch { return ''; }
+  }
+
+  hash(s) {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) { h = Math.imul(31,h) + s.charCodeAt(i) | 0; }
+    return Math.abs(h).toString(36);
+  }
+
+  async fetchQuery(q) {
+    const c = this.qcache.get(q);
+    if (c && Date.now() - c.ts < CFG.CACHE_TTL_MS) return c.items;
+
+    try {
+      let items = [];
+
+      if (this.backend) {
+        const r = await this.tfetch(`${CFG.API}?q=${encodeURIComponent(q)}`);
+        const d = await r.json();
+        items = d.data || [];
+      } else if (this.proxy) {
+        const r = await this.tfetch(this.proxy.url(this.rssUrl(q)));
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+
+        if (this.proxy.mode === 'json') {
+          // rss2json retorna JSON diretamente
+          const d = await r.json();
+          if (d.status === 'error') throw new Error('rss2json: ' + d.message);
+          items = (d.items||[]).map(i => ({
+            title:   this.clean(i.title||''),
+            url:     i.link || i.url || '',
+            source:  this.clean(i.author||'') || this.domain(i.link||''),
+            pubDate: i.pubDate || i.published || '',
+          }));
+        } else {
+          // allorigins / corsproxy retornam XML (possivelmente dentro de JSON)
+          const raw = await this.proxy.read(r);
+          const xmlStr = typeof raw === 'string' ? raw : (raw?.contents || '');
+          items = this.parseXML(xmlStr);
+        }
+      }
+
+      // Filtra janela temporal
+      const cutoff = Date.now() - CFG.WINDOW_HOURS * 3600_000;
+      const filtered = items.filter(i => {
+        const ts = new Date(i.pubDate).getTime();
+        return !isNaN(ts) && ts > cutoff;
+      });
+
+      this.qcache.set(q, { items: filtered, ts: Date.now() });
+      this.setSt('cache', this.qcache.size + ' queries', '');
+      return filtered;
+
+    } catch(e) {
+      this.errors++;
+      this.setSt('errors', this.errors, this.errors > 3 ? 'err' : 'warn');
+      // Suprime erros de rede no console (normais em sandbox/CORS)
+      // console.warn('[FM] fetch falhou:', q, e.message);
+      return [];
+    }
+  }
+
+  async fetchAll() {
+    const seen = new Map();
+    this.cycleCount++;
+    this.lastFetch = new Date();
+
+    // Modo GAS Proxy: busca tudo de uma vez via Apps Script (mais eficiente)
+    if (this.gasProxy && CFG.GAS_PROXY) {
+      try {
+        const r = await this.tfetch(CFG.GAS_PROXY);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.ok && Array.isArray(d.data)) {
+            const janela = Date.now() - CFG.WINDOW_HOURS * 3600_000;
+            d.data.forEach(item => {
+              if (!item.url || !item.title) return;
+              const id = this.hash(item.url);
+              if (seen.has(id) || Store.isDismissed(id)) return;
+              const ts = new Date(item.pubDate).getTime();
+              if (isNaN(ts) || ts < janela) return;
+              const cl = classify(item.title, item.source);
+              if (!cl.cats.length) return;
+              const impact = detectImpact(item.title);
+              const sev = impact.level === 'direct' ? Math.min(cl.sev+10,100) : cl.sev;
+              seen.set(id, {
+                id, title: item.title,
+                source: item.source || 'Desconhecido',
+                url: item.url, pubDate: item.pubDate,
+                ts: ts || Date.now(),
+                cats: cl.cats, sev,
+                impact, monetaryValue: cl.monetaryValue || 0,
+                fav: Store.isFav(id),
+              });
+            });
+            this.setSt('cache', `GAS · ciclo ${this.cycleCount}`, '');
+            return Array.from(seen.values()).sort((a,b)=>b.ts-a.ts).slice(0,CFG.MAX_ITEMS);
+          }
+        }
+      } catch(e) {
+        this.errors++;
+        this.setSt('errors', this.errors, 'err');
+      }
+    }
+
+    // Modo fallback: queries diretas via proxy externo
+    const rotGroup = [QUERIES_A, QUERIES_B, QUERIES_C][this.cycleCount % 3];
+    const cycleQueries = [...QUERIES_PRIORITY, ...rotGroup];
+    this.setSt('cache', `ciclo ${this.cycleCount} · ${cycleQueries.length} queries`, '');
+
+    for (let i = 0; i < cycleQueries.length; i += CFG.BATCH_SIZE) {
+      const batch = cycleQueries.slice(i, i + CFG.BATCH_SIZE);
+      const results = await Promise.allSettled(batch.map(q => this.fetchQuery(q)));
+
+      results.forEach(r => {
+        if (r.status !== 'fulfilled') return;
+        r.value.forEach(item => {
+          if (!item.url || !item.title) return;
+          const id = this.hash(item.url);
+          if (seen.has(id)) return;
+
+          const cl = classify(item.title, item.source);
+          if (!cl.cats.length) return; // descarta não-bancário
+
+          const impact = detectImpact(item.title);
+          // Impacto direto no Itaú booosta a severidade (+10 pts, capped 100)
+          const boostedSev = impact.level === 'direct'
+            ? Math.min(cl.sev + 10, 100)
+            : cl.sev;
+
+          // Ignora notícias já dispensadas manualmente
+          if (Store.isDismissed(id)) return;
+
+          seen.set(id, {
+            id,
+            title: item.title,
+            source: item.source || 'Desconhecido',
+            url: item.url,
+            pubDate: item.pubDate,
+            ts: new Date(item.pubDate).getTime() || Date.now(),
+            cats: cl.cats,
+            sev: boostedSev,
+            impact,
+            monetaryValue: cl.monetaryValue || 0,
+            fav: Store.isFav(id),
+          });
+        });
+      });
+    }
+
+    return Array.from(seen.values())
+      .sort((a,b) => b.ts - a.ts)
+      .slice(0, CFG.MAX_ITEMS);
+  }
+
+  setSt(key, val, cls='') {
+    const el = document.getElementById('st-' + key);
+    if (!el) return;
+    el.textContent = val;
+    el.className = 'st-val' + (cls ? ' ' + cls : '');
+  }
+}
+
+/* ----------------------------------------------------------------
+   STORE — estado global e favoritos
+---------------------------------------------------------------- */
+const Store = {
+  news: [], filtered: [],
+  cat: 'all', sev: 'all', sort: 'date', q: '', favOnly: false, itauOnly: false,
+
+  DISMISS_KEY: 'fm_dismissed_v1',
+
+  FAV_KEY: 'fm_favs_v2',
+
+  favSet() {
+    try { return new Set(JSON.parse(localStorage.getItem(this.FAV_KEY)||'[]')); }
+    catch { return new Set(); }
+  },
+
+  isFav(id) { return this.favSet().has(id); },
+
+  toggleFav(id) {
+    const s = this.favSet();
+    s.has(id) ? s.delete(id) : s.add(id);
+    localStorage.setItem(this.FAV_KEY, JSON.stringify([...s]));
+    const item = this.news.find(n => n.id === id);
+    if (item) item.fav = s.has(id);
+    return s.has(id);
+  },
+
+  dismissedSet() {
+    try { return new Set(JSON.parse(localStorage.getItem(this.DISMISS_KEY)||'[]')); }
+    catch { return new Set(); }
+  },
+
+  isDismissed(id) { return this.dismissedSet().has(id); },
+
+  dismiss(id) {
+    // Arquiva imediatamente e marca como dispensado
+    const item = this.news.find(n => n.id === id);
+    if (item) {
+      const stored = ArchiveSvc.load();
+      const alreadyArchived = stored.some(n => n.id === id);
+      if (!alreadyArchived) {
+        ArchiveSvc.save([...stored, { ...item, archivedAt: Date.now(), dismissedManually: true }]);
+      }
+    }
+    // Persiste ID dispensado
+    const s = this.dismissedSet();
+    s.add(id);
+    localStorage.setItem(this.DISMISS_KEY, JSON.stringify([...s]));
+    // Remove da lista ativa
+    this.news = this.news.filter(n => n.id !== id);
+    this.apply();
+  },
+
+  load(items) {
+    const favs = this.favSet();
+    this.news = items.map(n => ({ ...n, fav: favs.has(n.id) }));
+    this.apply();
+  },
+
+  apply() {
+    const dismissed = this.dismissedSet();
+    let list = this.news.filter(n => !dismissed.has(n.id));
+
+    if (this.cat !== 'all') {
+      const id = parseInt(this.cat);
+      list = list.filter(n => n.cats.includes(id));
+    }
+
+    if (this.sev !== 'all') {
+      const ranges = { critical:[80,100], high:[60,79], medium:[40,59], low:[0,39] };
+      const [mn, mx] = ranges[this.sev] || [0,100];
+      list = list.filter(n => n.sev >= mn && n.sev <= mx);
+    }
+
+    if (this.q) {
+      const q = norm(this.q);
+      list = list.filter(n => norm(n.title).includes(q) || norm(n.source).includes(q));
+    }
+
+    if (this.favOnly) list = list.filter(n => n.fav);
+
+    if (this.itauOnly) list = list.filter(n => n.impact?.level === 'direct');
+
+    list.sort(this.sort === 'severity'
+      ? (a,b) => b.sev - a.sev
+      : (a,b) => b.ts - a.ts
+    );
+
+    this.filtered = list;
+  },
+
+  stats() {
+    const n = this.news;
+    return {
+      total:    n.length,
+      critical: n.filter(x => x.sev >= 80).length,
+      high:     n.filter(x => x.sev >= 60 && x.sev < 80).length,
+      medium:   n.filter(x => x.sev >= 40 && x.sev < 60).length,
+      low:      n.filter(x => x.sev < 40).length,
+      byCat:    CATS.map(c => ({ ...c, count: n.filter(x => x.cats.includes(c.id)).length })),
+      favs:     n.filter(x => x.fav).length,
+      impactDirect:  n.filter(x => x.impact?.level === 'direct').length,
+      impactRelated: n.filter(x => x.impact?.level === 'related').length,
+      impactSector:  n.filter(x => x.impact?.level === 'sector').length,
+    };
+  }
+};
+
+/* ----------------------------------------------------------------
+   AUDIO — sirenes diferenciadas por severidade
+---------------------------------------------------------------- */
+const Audio = {
+  ctx: null, on: false,
+
+  init() {
+    document.getElementById('btn-sound').addEventListener('click', () => {
+      this.on = !this.on;
+      const btn = document.getElementById('btn-sound');
+      btn.textContent = this.on ? '🔊' : '🔇';
+      btn.classList.toggle('active', this.on);
+      if (this.on) this.beep('info');
+    });
+  },
+
+  getCtx() {
+    if (!this.ctx) this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+    return this.ctx;
+  },
+
+  beep(type) {
+    if (!this.on) return;
+    try {
+      const ctx = this.getCtx();
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      const t = ctx.currentTime;
+
+      if (type === 'critical') {
+        // Sirene urgente — 3 ciclos, 2s
+        osc.type = 'sawtooth';
+        [[700,1100],[700,1100],[700,1100]].forEach(([lo,hi],i) => {
+          const s = t + i * 0.62;
+          osc.frequency.setValueAtTime(lo,s);
+          osc.frequency.linearRampToValueAtTime(hi, s+0.31);
+          osc.frequency.linearRampToValueAtTime(lo, s+0.62);
+        });
+        g.gain.setValueAtTime(0,t);
+        g.gain.linearRampToValueAtTime(0.22, t+0.06);
+        g.gain.setValueAtTime(0.22, t+1.75);
+        g.gain.linearRampToValueAtTime(0, t+1.95);
+        osc.start(t); osc.stop(t+2);
+      } else if (type === 'high') {
+        // Sirene moderada — 2 ciclos, 1.2s
+        osc.type = 'sawtooth';
+        [[580,900],[580,900]].forEach(([lo,hi],i) => {
+          const s = t + i * 0.55;
+          osc.frequency.setValueAtTime(lo,s);
+          osc.frequency.linearRampToValueAtTime(hi, s+0.27);
+          osc.frequency.linearRampToValueAtTime(lo, s+0.55);
+        });
+        g.gain.setValueAtTime(0,t);
+        g.gain.linearRampToValueAtTime(0.14, t+0.05);
+        g.gain.setValueAtTime(0.14, t+1.0);
+        g.gain.linearRampToValueAtTime(0, t+1.2);
+        osc.start(t); osc.stop(t+1.2);
+      } else {
+        // Beep suave — notificação informativa
+        osc.type = 'sine';
+        osc.frequency.value = 660;
+        g.gain.setValueAtTime(0,t);
+        g.gain.linearRampToValueAtTime(0.08, t+0.05);
+        g.gain.linearRampToValueAtTime(0, t+0.3);
+        osc.start(t); osc.stop(t+0.35);
+      }
+    } catch(_) {}
+  }
+};
+
+/* ----------------------------------------------------------------
+   UI — renderização e bindings
+---------------------------------------------------------------- */
+const UI = {
+  init() {
+    this.buildCatTabs();
+    this.bindFilters();
+    this.clock();
+  },
+
+  buildCatTabs() {
+    document.getElementById('cat-tabs').innerHTML = CATS.map(c =>
+      `<button class="ftab" data-cat="${c.id}">
+        ${c.icon} ${c.name}
+        <span class="badge" id="cnt-${c.id}">0</span>
+      </button>`
+    ).join('');
+  },
+
+  bindFilters() {
+    document.getElementById('filters-bar').addEventListener('click', e => {
+      const tab = e.target.closest('.ftab');
+      if (!tab) return;
+      document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      Store.cat = tab.dataset.cat;
+      Store.apply();
+      this.renderFeed();
+    });
+
+    document.getElementById('f-severity').addEventListener('change', e => {
+      Store.sev = e.target.value; Store.apply(); this.renderFeed();
+    });
+
+    document.getElementById('f-sort').addEventListener('change', e => {
+      Store.sort = e.target.value; Store.apply(); this.renderFeed();
+    });
+
+    let st;
+    document.getElementById('search').addEventListener('input', e => {
+      clearTimeout(st);
+      st = setTimeout(() => { Store.q = e.target.value; Store.apply(); this.renderFeed(); }, 280);
+    });
+
+    document.getElementById('btn-fav-only').addEventListener('click', () => {
+      Store.favOnly = !Store.favOnly;
+      const btn = document.getElementById('btn-fav-only');
+      btn.textContent = Store.favOnly ? '★' : '☆';
+      btn.classList.toggle('active', Store.favOnly);
+      Store.apply(); this.renderFeed();
+    });
+
+    document.getElementById('btn-itau-only').addEventListener('click', () => {
+      Store.itauOnly = !Store.itauOnly;
+      const btn = document.getElementById('btn-itau-only');
+      btn.title = Store.itauOnly ? 'Mostrar todas as notícias' : 'Filtrar impacto direto';
+      btn.classList.toggle('active', Store.itauOnly);
+      // Toast de feedback
+      UI.toast(
+        Store.itauOnly ? '🏦 Filtro: apenas impacto direto' : '🏦 Filtro removido — exibindo todas',
+        Store.itauOnly ? 'critical' : 'info', 3000
+      );
+      Store.apply(); this.renderFeed();
+    });
+  },
+
+  ago(dateStr) {
+    const m = Math.floor((Date.now() - new Date(dateStr)) / 60_000);
+    if (m < 1)    return 'agora';
+    if (m < 60)   return `${m}min`;
+    if (m < 1440) return `${Math.floor(m/60)}h`;
+    return `${Math.floor(m/1440)}d`;
+  },
+
+  esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  },
+
+  gaugeHTML(sev, si) {
+    // Gauge circular SVG — r=14, circunferência=87.96
+    const R  = 14; const C = 2 * Math.PI * R;
+    const pct = sev / 100;
+    const dash = C * pct;
+    return `
+      <div class="gauge-wrap" title="Score de risco: ${sev}/100">
+        <svg class="gauge-svg" viewBox="0 0 36 36">
+          <circle class="gauge-track" cx="18" cy="18" r="${R}"
+                  stroke-dasharray="${C}" stroke-dashoffset="0"/>
+          <circle class="gauge-fill" cx="18" cy="18" r="${R}"
+                  stroke="${si.color}"
+                  stroke-dasharray="${C}"
+                  stroke-dashoffset="${C - dash}"/>
+        </svg>
+        <div class="gauge-label" style="color:${si.color}">${sev}</div>
+      </div>`;
+  },
+
+  faviconHTML(source, url) {
+    // Favicon via Google S2 — funciona para todos os domínios
+    let domain = '';
+    try { domain = new URL(url).hostname; } catch { domain = ''; }
+    if (!domain) return `<div class="card-favicon-placeholder">?</div>`;
+    return `<img class="card-favicon"
+      src="https://www.google.com/s2/favicons?domain=${domain}&sz=16"
+      onerror="this.style.display='none'"
+      alt="${this.esc(source)}" loading="lazy">`;
+  },
+
+  highlightTitle(title) {
+    // Destaca a palavra buscada no título
+    if (!Store.q) return this.esc(title);
+    const escaped = this.esc(title);
+    // Escapa caracteres especiais de regex de forma segura
+    const safe = Store.q.split('').map(ch => ch.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('');
+    if (!safe) return escaped;
+    try {
+      return escaped.replace(new RegExp(safe, 'gi'), m => '<mark class="hl">' + m + '</mark>');
+    } catch { return escaped; }
+  },
+
+  card(n) {
+    const si   = sevInfo(n.sev);
+    const cats = n.cats.map(id => CATS[id]).filter(Boolean);
+
+    // Pills coloridas — cada categoria usa sua própria cor
+    const pills = cats.map(c => {
+      const hex  = c.color || '#3b82f6';
+      const rgba = hex + '22'; // ~13% opacity
+      return `<span class="cat-pill"
+        style="color:${hex};background:${rgba};border-color:${hex}44;"
+      >${c.icon} ${c.name}</span>`;
+    }).join('');
+
+    const impactLevel = n.impact?.level || 'none';
+    const impactCls   = impactLevel !== 'none' ? ` impact-${impactLevel}` : '';
+    const impBadge    = impactBadgeHTML(n.impact);
+
+    // Badge de valor monetário
+    const moneyBadge = n.monetaryValue >= 100_000
+      ? `<span style="font-family:var(--mono);font-size:9px;padding:2px 6px;
+           border-radius:3px;background:rgba(251,191,36,.12);color:#fbbf24;
+           border:1px solid rgba(251,191,36,.25);flex-shrink:0;">
+           💰 ${n.monetaryValue >= 1e9 ? 'R$ ' + (n.monetaryValue/1e9).toFixed(1) + 'B'
+                : n.monetaryValue >= 1e6 ? 'R$ ' + (n.monetaryValue/1e6).toFixed(0) + 'M'
+                : 'R$ ' + (n.monetaryValue/1e3).toFixed(0) + 'K'}
+         </span>`
+      : '';
+
+    return `
+      <div class="card ${si.cls}${impactCls}" data-id="${n.id}">
+        <div class="card-stripe"></div>
+        <div class="card-inner">
+          <div class="card-top">
+            ${this.faviconHTML(n.source, n.url)}
+            <span class="sev-badge ${si.cls}">${si.label}</span>
+            ${impBadge}
+            ${moneyBadge}
+            <div class="card-actions">
+              <span class="card-time">${this.ago(n.pubDate)}</span>
+              <button class="btn-fav ${n.fav?'active':''}" data-fav="${n.id}"
+                title="${n.fav?'Remover favorito':'Salvar'}">${n.fav?'★':'☆'}</button>
+            </div>
+          </div>
+          <a class="card-title" href="${this.esc(n.url)}" target="_blank" rel="noopener noreferrer"
+            title="${this.esc(n.title)}">${this.highlightTitle(n.title)}</a>
+          <div class="card-foot">
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${this.gaugeHTML(n.sev, si)}
+              <span class="card-source">${this.esc(n.source)}</span>
+            </div>
+            <div class="cat-pills">${pills}</div>
+          </div>
+        </div>
+        <button class="btn-dismiss" data-dismiss="${n.id}" title="Dispensar — move para o arquivo">✕</button>
+      </div>`;
+  },
+
+  renderFeed() {
+    const feed = document.getElementById('feed');
+    const list = Store.filtered;
+
+    if (!list.length) {
+      const hasSearch = Store.q || Store.cat !== 'all' || Store.sev !== 'all' || Store.favOnly;
+      feed.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">${Store.favOnly ? '☆' : '🔍'}</div>
+          <div class="empty-title">${Store.favOnly ? 'Nenhum favorito salvo' : 'Sem resultados'}</div>
+          <div class="empty-desc">${hasSearch
+            ? 'Ajuste os filtros ou aguarde novas notícias.'
+            : 'Aguardando notícias nas últimas 48 horas.'
+          }</div>
+        </div>`;
+      return;
+    }
+
+    feed.innerHTML = list.map(n => this.card(n)).join('');
+
+    // Bind favoritar
+    feed.querySelectorAll('.btn-fav').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        const isFav = Store.toggleFav(btn.dataset.fav);
+        btn.textContent = isFav ? '★' : '☆';
+        btn.classList.toggle('active', isFav);
+        this.updateSidebar();
+      });
+    });
+
+    // Bind dispensar (X) — animação de saída antes de remover
+    feed.querySelectorAll('.btn-dismiss').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const id   = btn.dataset.dismiss;
+        const card = btn.closest('.card');
+
+        // Animação de saída suave
+        card.style.transition = 'opacity 0.25s ease, transform 0.25s ease, max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease';
+        card.style.overflow   = 'hidden';
+        card.style.maxHeight  = card.offsetHeight + 'px';
+
+        requestAnimationFrame(() => {
+          card.style.opacity   = '0';
+          card.style.transform = 'translateX(40px)';
+          card.style.maxHeight = '0';
+          card.style.marginBottom = '0';
+          card.style.padding   = '0';
+        });
+
+        setTimeout(() => {
+          Store.dismiss(id);
+          // Atualiza sidebar e contadores sem re-renderizar tudo
+          UI.updateCounts();
+          UI.updateSidebar();
+          document.getElementById('st-archive').textContent = ArchiveSvc.count();
+          // Remove o card do DOM diretamente (já foi da Store)
+          card.remove();
+        }, 280);
+      });
+    });
+  },
+
+  updateKPIs(s) {
+    document.getElementById('kpi-total').textContent  = s.total;
+    document.getElementById('kpi-crit').textContent   = s.critical;
+    document.getElementById('kpi-high').textContent   = s.high;
+    document.getElementById('kpi-impact').textContent = s.impactDirect || 0;
+    document.getElementById('kpi-upd').textContent    =
+      new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+  },
+
+  updateCounts() {
+    const n = Store.news;
+    document.getElementById('cnt-all').textContent = n.length;
+    CATS.forEach(c => {
+      const el = document.getElementById(`cnt-${c.id}`);
+      if (el) el.textContent = n.filter(x => x.cats.includes(c.id)).length;
+    });
+  },
+
+  updateSidebar() {
+    const s = Store.stats();
+    // Donut de categorias — Chart.js
+    ChartSvc.updateDonut(s.byCat);
+
+    // Barras de severidade animadas
+    const sevRows = [
+      { label:'Crítico', count:s.critical, color:'#f43f5e' },
+      { label:'Alto',    count:s.high,     color:'#fb923c' },
+      { label:'Médio',   count:s.medium,   color:'#fbbf24' },
+      { label:'Baixo',   count:s.low,      color:'#34d399' },
+    ];
+    const maxSev = Math.max(1, ...sevRows.map(r => r.count));
+    document.getElementById('dist-sev').innerHTML = sevRows.map(r => `
+      <div class="sev-bar-row">
+        <span class="sev-bar-lbl" style="color:${r.color}">${r.label}</span>
+        <div class="sev-bar-track">
+          <div class="sev-bar-fill" style="width:${Math.round(r.count/maxSev*100)}%;background:${r.color}"></div>
+        </div>
+        <span class="sev-bar-val">${r.count}</span>
+      </div>`
+    ).join('');
+
+    document.getElementById('st-favs').textContent = s.favs;
+    const dismissEl = document.getElementById('st-dismissed');
+    if (dismissEl) dismissEl.textContent = Store.dismissedSet().size;
+
+    // Impacto institucional
+    const impRows = [
+      { label:'🏦 Impacto direto',     count: s.impactDirect,  color:'#fb923c' },
+      { label:'🏛 Reguladores',       count: s.impactRelated, color:'#fbbf24' },
+      { label:'🏢 Concorrentes',      count: s.impactSector,  color:'#a78bfa' },
+    ];
+    const maxImp = Math.max(1, ...impRows.map(r => r.count));
+    document.getElementById('dist-impact').innerHTML = impRows.map(r => `
+      <div class="dist-row">
+        <span class="dist-name">${r.label}</span>
+        <span class="dist-val">${r.count}</span>
+      </div>
+      <div class="dist-bar">
+        <div class="dist-fill" style="width:${Math.round(r.count/maxImp*100)}%;background:${r.color}"></div>
+      </div>`
+    ).join('');
+
+    this.updateKPIs(s);
+  },
+
+  dot(loading) {
+    const d = document.getElementById('live-dot');
+    d.className = 'live-dot' + (loading ? ' loading' : '');
+  },
+
+  toast(msg, type='info', ms=5000) {
+    const c = document.getElementById('toasts');
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = msg;
+    c.appendChild(el);
+    setTimeout(() => { el.style.animation='tOut 0.3s ease forwards'; setTimeout(()=>el.remove(),300); }, ms);
+  },
+
+  clock() {
+    const upd = () => { document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-BR'); };
+    upd(); setInterval(upd, 1000);
+  }
+};
+
+/* ----------------------------------------------------------------
+   APP — inicialização e ciclo de vida
+---------------------------------------------------------------- */
+const App = {
+  svc: new DataSvc(),
+  cd: CFG.REFRESH_SEC,
+  timer: null,
+  seen: new Set(),
+  _lastNews: [],   // cópia da lista anterior para detectar saídas do feed
+
+  async init() {
+    UI.init();
+    Audio.init();
+    ArchiveUI.initBindings();
+    MapSvc.init();
+    ChartSvc.init();
+
+    // Botão de refresh manual — força ciclo imediato + reinicia contagem
+    document.getElementById('btn-refresh').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-refresh');
+      btn.style.transform = 'rotate(360deg)';
+      btn.style.transition = 'transform 0.5s ease';
+      // Limpa cache de todas as queries para forçar fetch real
+      App.svc.qcache.clear();
+      await App.refresh();
+      App.countdown();  // reinicia contagem do zero
+      setTimeout(() => { btn.style.transform = ''; btn.style.transition = ''; }, 600);
+    });
+
+    // Atualiza contadores na sidebar
+    document.getElementById('st-archive').textContent = ArchiveSvc.count();
+    const dismissEl = document.getElementById('st-dismissed');
+    if (dismissEl) dismissEl.textContent = Store.dismissedSet().size;
+
+    const ok = await this.svc.detectSource();
+    if (!ok) {
+      UI.toast('Nenhuma fonte disponível. Verifique sua conexão.', 'critical', 12000);
+      document.getElementById('feed').innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">⚠️</div>
+          <div class="empty-title">Sem conexão de dados</div>
+          <div class="empty-desc">Não foi possível conectar a nenhum proxy RSS ou backend.<br>Recarregue a página para tentar novamente.</div>
+        </div>`;
+      UI.dot(false);
+      return;
+    }
+
+    await this.refresh();
+    this.countdown();
+  },
+
+  async refresh() {
+    UI.dot(true);
+    document.getElementById('countdown').textContent = 'atualizando...';
+
+    const news = await this.svc.fetchAll();
+
+    // ── Detecção de entradas novas ──
+    const newOnes = this.seen.size ? news.filter(n => !this.seen.has(n.id)) : [];
+    if (newOnes.length) {
+      const directHits = newOnes.filter(n => n.impact?.level === 'direct');
+      const maxSev = Math.max(...newOnes.map(n => n.sev));
+      const type = maxSev >= 80 ? 'critical' : maxSev >= 60 ? 'high' : 'info';
+      Audio.beep(type);
+
+      if (directHits.length) {
+        // Alerta prioritário para impacto direto no Itaú
+        UI.toast(`🏦 ITAÚ: ${directHits.length} notícia(s) com impacto direto!`, 'critical', 8000);
+      }
+      const label = maxSev >= 80 ? '🚨 CRÍTICO' : maxSev >= 60 ? '⚠️ ALTO' : '🔔 Info';
+      UI.toast(`${label}: ${newOnes.length} nova(s) notícia(s)`, type);
+    }
+
+    // ── Arquivamento: notícias que saíram do feed ──
+    if (this._lastNews.length) {
+      const prevIds = new Set(this._lastNews.map(n => n.id));
+      ArchiveSvc.archive(prevIds, news);
+      const archCount = ArchiveSvc.count();
+      document.getElementById('st-archive').textContent = archCount;
+    }
+
+    news.forEach(n => this.seen.add(n.id));
+    this._lastNews = [...news];   // guarda para o próximo ciclo
+
+    Store.load(news);
+    UI.renderFeed();
+    UI.updateCounts();
+    UI.updateSidebar();
+    MapSvc.update(news);  // atualiza mapa se estiver aberto
+    ChartSvc.update(news); // sparkline, gauge, minimap, donut
+
+    // Exibe timestamp real do último fetch no sidebar
+    const lfEl = document.getElementById('st-lastfetch');
+    if (lfEl) {
+      lfEl.textContent = new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      lfEl.className   = 'st-val ok';
+    }
+    UI.dot(false);
+  },
+
+  countdown() {
+    clearInterval(this.timer);
+    this.cd = CFG.REFRESH_SEC;
+    this.timer = setInterval(async () => {
+      this.cd--;
+      document.getElementById('countdown').textContent = `${this.cd}s`;
+      if (this.cd <= 0) {
+        this.cd = CFG.REFRESH_SEC;
+        await this.refresh();
+      }
+    }, 1000);
+  }
+};
+
+
+
+
+/* ================================================================
+   CHART SERVICE — donut (Chart.js), sparkline, gauge, mini-mapa
+================================================================ */
+const ChartSvc = {
+  donut:    null,
+  sparkCtx: null,
+  gaugeCtx: null,
+  minimap:  null,
+  miniMarkers: [],
+  hourlyData: [],  // [{hour, count, maxSev}] últimas 12h
+  HIST_KEY: 'fm_hourly_v1',
+
+  init() {
+    this._loadHistory();
+    this._initSparkline();
+    this._initGauge();
+    this._initMinimap();
+    this._initDonut();
+  },
+
+  /* ── Histórico de atividade por hora (localStorage) ── */
+  _loadHistory() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(this.HIST_KEY) || '[]');
+      const cutoff = Date.now() - 12 * 3600_000;
+      this.hourlyData = raw.filter(d => d.ts > cutoff);
+    } catch { this.hourlyData = []; }
+  },
+
+  _saveHistory() {
+    try { localStorage.setItem(this.HIST_KEY, JSON.stringify(this.hourlyData.slice(-24))); }
+    catch {}
+  },
+
+  recordCycle(news) {
+    const now = Date.now();
+    const hour = new Date().getHours();
+    const last = this.hourlyData[this.hourlyData.length - 1];
+    const maxSev = news.length ? Math.max(...news.map(n => n.sev)) : 0;
+
+    // Agrega por hora — evita duplicar o mesmo ciclo
+    if (last && new Date(last.ts).getHours() === hour) {
+      last.count = Math.max(last.count, news.length);
+      last.maxSev = Math.max(last.maxSev, maxSev);
+      last.ts = now;
+    } else {
+      this.hourlyData.push({ ts: now, hour, count: news.length, maxSev });
+    }
+    this.hourlyData = this.hourlyData.filter(d => d.ts > now - 12 * 3600_000);
+    this._saveHistory();
+  },
+
+  /* ── SPARKLINE — mini gráfico de linha 12h ── */
+  _initSparkline() {
+    this.sparkCtx = document.getElementById('sparkline-canvas')?.getContext('2d');
+  },
+
+  _drawSparkline() {
+    const ctx = this.sparkCtx;
+    if (!ctx) return;
+    const W = 120, H = 36;
+    ctx.clearRect(0, 0, W, H);
+
+    // Gera 12 slots (uma por hora)
+    const slots = Array.from({length:12}, (_,i) => {
+      const hTarget = (new Date().getHours() - 11 + i + 24) % 24;
+      const match = this.hourlyData.find(d => d.hour === hTarget);
+      return match ? match.count : 0;
+    });
+
+    if (slots.every(v => v === 0)) {
+      ctx.fillStyle = 'rgba(139,151,184,.3)';
+      ctx.font = '9px monospace';
+      ctx.fillText('aguardando...', 8, 22);
+      return;
+    }
+
+    const maxV = Math.max(1, ...slots);
+    const pad = 4;
+    const stepX = (W - pad*2) / 11;
+
+    // Linha de fundo
+    ctx.strokeStyle = 'rgba(30,42,66,.8)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad, H - pad);
+    ctx.lineTo(W - pad, H - pad);
+    ctx.stroke();
+
+    // Gradiente de preenchimento
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, 'rgba(59,130,246,.4)');
+    grad.addColorStop(1, 'rgba(59,130,246,.02)');
+
+    // Área preenchida
+    ctx.beginPath();
+    ctx.moveTo(pad, H - pad);
+    slots.forEach((v, i) => {
+      const x = pad + i * stepX;
+      const y = H - pad - (v / maxV) * (H - pad * 2.5);
+      i === 0 ? ctx.lineTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.lineTo(pad + 11 * stepX, H - pad);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Linha principal
+    ctx.beginPath();
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = 'round';
+    slots.forEach((v, i) => {
+      const x = pad + i * stepX;
+      const y = H - pad - (v / maxV) * (H - pad * 2.5);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Ponto final (agora)
+    const lastX = pad + 11 * stepX;
+    const lastY = H - pad - (slots[11] / maxV) * (H - pad * 2.5);
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#3b82f6';
+    ctx.fill();
+  },
+
+  /* ── GAUGE — velocímetro de risco geral ── */
+  _initGauge() {
+    this.gaugeCtx = document.getElementById('gauge-canvas')?.getContext('2d');
+  },
+
+  _drawGauge(avgSev) {
+    const ctx = this.gaugeCtx;
+    if (!ctx) return;
+    const W = 52, H = 52, cx = 26, cy = 26, R = 18;
+    ctx.clearRect(0, 0, W, H);
+
+    const color = avgSev >= 80 ? '#f43f5e'
+                : avgSev >= 60 ? '#fb923c'
+                : avgSev >= 40 ? '#fbbf24'
+                : '#34d399';
+
+    const startA = Math.PI * 0.75;
+    const endA   = Math.PI * 2.25;
+    const fillA  = startA + (avgSev / 100) * (endA - startA);
+
+    // Track
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, startA, endA);
+    ctx.strokeStyle = '#1e2a42';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Fill
+    if (avgSev > 0) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, startA, fillA);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+
+    // Label central
+    ctx.fillStyle = color;
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(Math.round(avgSev), cx, cy - 3);
+    ctx.fillStyle = '#4a5a7a';
+    ctx.font = '7px monospace';
+    ctx.fillText('RISCO', cx, cy + 8);
+  },
+
+  /* ── DONUT — Chart.js ── */
+  _initDonut() {
+    const canvas = document.getElementById('donut-canvas');
+    if (!canvas || !window.Chart) return;
+    const ctx = canvas.getContext('2d');
+    this.donut = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: CATS.map(c => c.name),
+        datasets: [{
+          data: CATS.map(() => 0),
+          backgroundColor: CATS.map(c => c.color + 'cc'),
+          borderColor:     CATS.map(c => c.color),
+          borderWidth: 1.5,
+          hoverOffset: 4,
+        }]
+      },
+      options: {
+        responsive: false,
+        cutout: '62%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#111827',
+            borderColor: '#1e2a42', borderWidth: 1,
+            titleColor: '#e2e8f6', bodyColor: '#8b97b8',
+            callbacks: {
+              label: ctx => ` ${ctx.parsed} notícias (${Math.round(ctx.parsed / Math.max(1, ctx.dataset.data.reduce((a,b)=>a+b,0)) * 100)}%)`
+            }
+          }
+        },
+        animation: { duration: 500 },
+      }
+    });
+  },
+
+  updateDonut(byCat) {
+    if (!this.donut) return;
+    const data = CATS.map(c => byCat.find(x => x.id === c.id)?.count || 0);
+    this.donut.data.datasets[0].data = data;
+    this.donut.update('active');
+
+    // Legend lateral
+    const legend = document.getElementById('donut-legend');
+    if (!legend) return;
+    const total = Math.max(1, data.reduce((a,b)=>a+b,0));
+    const top5  = CATS.map((c,i) => ({...c, count: data[i]}))
+                      .filter(c => c.count > 0)
+                      .sort((a,b) => b.count - a.count)
+                      .slice(0, 6);
+    legend.innerHTML = top5.map(c => `
+      <div class="donut-leg-row">
+        <div class="donut-leg-dot" style="background:${c.color}"></div>
+        <span>${c.icon} ${c.name}</span>
+        <span class="donut-leg-val">${c.count}</span>
+      </div>`
+    ).join('');
+  },
+
+  /* ── MINI-MAPA sempre visível na sidebar ── */
+  _initMinimap() {
+    const el = document.getElementById('minimap-container');
+    if (!el || !window.L) return;
+    this.minimap = L.map('minimap-container', {
+      center: [-15.78, -47.93], zoom: 3,
+      zoomControl: false, attributionControl: false,
+      dragging: false, scrollWheelZoom: false,
+      doubleClickZoom: false, touchZoom: false,
+    });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.minimap);
+  },
+
+  updateMinimap(news) {
+    if (!this.minimap) return;
+    this.miniMarkers.forEach(m => this.minimap.removeLayer(m));
+    this.miniMarkers = [];
+
+    const byLoc = new Map();
+    news.forEach(n => {
+      const loc = extractLocation(n.title);
+      if (!loc) return;
+      if (!byLoc.has(loc.uf)) byLoc.set(loc.uf, { loc, items: [] });
+      byLoc.get(loc.uf).items.push(n);
+    });
+
+    let count = 0;
+    byLoc.forEach(({ loc, items }) => {
+      count += items.length;
+      const maxSev = Math.max(...items.map(n => n.sev));
+      const si = sevInfo(maxSev);
+      const color = si.color.replace('var(--critical)','#f43f5e').replace('var(--high)','#fb923c').replace('var(--medium)','#fbbf24').replace('var(--low)','#34d399');
+      const size = items.length > 1 ? 12 : 9;
+      const icon = L.divIcon({
+        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;
+                background:${color};border:2px solid rgba(255,255,255,.6);
+                box-shadow:0 0 6px ${color}88;"></div>`,
+        iconSize:[size,size], iconAnchor:[size/2,size/2], className:'',
+      });
+      const m = L.marker([loc.lat, loc.lng], { icon })
+        .bindTooltip(`<b>${loc.name}</b><br>${items.length} notícia${items.length>1?'s':''}`, {
+          direction:'top', className:'', offset:[0,-6]
+        });
+      m.addTo(this.minimap);
+      this.miniMarkers.push(m);
+    });
+
+    const el = document.getElementById('minimap-count');
+    if (el) el.textContent = count;
+  },
+
+  /* Chamado a cada refresh */
+  update(news) {
+    this.recordCycle(news);
+    this._drawSparkline();
+    const avgSev = news.length ? Math.round(news.reduce((a,n)=>a+n.sev,0)/news.length) : 0;
+    this._drawGauge(avgSev);
+    this.updateMinimap(news);
+  }
+};
+
+/* ================================================================
+   GEOLOCALIZADOR — extrai localização de títulos de notícias
+   e exibe no mapa Leaflet + OpenStreetMap
+================================================================ */
+
+/* ----------------------------------------------------------------
+   BASE DE LOCALIDADES BRASILEIRAS
+   Cobre estados + capitais + cidades recorrentes em notícias de fraude
+   Coordenadas: centroide do estado quando cidade não específica
+---------------------------------------------------------------- */
+const GEO_LOCATIONS = [
+  // ── Região Norte ──
+  { match:['acre','rio branco'],                    name:'Acre',              uf:'AC', lat:-9.0238,   lng:-70.8120  },
+  { match:['amapa','amapá','macapa','macapá'],       name:'Amapá',             uf:'AP', lat:1.4102,    lng:-51.7700  },
+  { match:['amazonas','manaus'],                     name:'Amazonas',          uf:'AM', lat:-3.4168,   lng:-65.8561  },
+  { match:['para','pará','belem','belém','maraba','marabá','santarem','santarém'], name:'Pará', uf:'PA', lat:-3.4168, lng:-52.0000 },
+  { match:['rondonia','rondônia','porto velho'],     name:'Rondônia',          uf:'RO', lat:-10.9162,  lng:-62.0773  },
+  { match:['roraima','boa vista'],                   name:'Roraima',           uf:'RR', lat:2.7376,    lng:-62.0751  },
+  { match:['tocantins','palmas','araguaina','araguaína'], name:'Tocantins',    uf:'TO', lat:-10.1753,  lng:-48.2982  },
+
+  // ── Região Nordeste ──
+  { match:['alagoas','maceio','maceió'],             name:'Alagoas',           uf:'AL', lat:-9.5713,   lng:-36.7820  },
+  { match:['bahia','salvador','feira de santana','vitoria da conquista','ilheus','ilhéus','camaçari','camacari','jequie','jequié','teixeira de freitas'], name:'Bahia', uf:'BA', lat:-12.5797, lng:-41.7007 },
+  { match:['ceara','ceará','fortaleza','juazeiro do norte','caucaia','sobral','crato'], name:'Ceará', uf:'CE', lat:-5.4984, lng:-39.3206 },
+  { match:['maranhao','maranhão','sao luis','são luís','imperatriz','timon','caxias'], name:'Maranhão', uf:'MA', lat:-4.9609, lng:-45.2744 },
+  { match:['paraiba','paraíba','joao pessoa','joão pessoa','campina grande','patos'], name:'Paraíba', uf:'PB', lat:-7.2399, lng:-36.7819 },
+  { match:['pernambuco','recife','caruaru','olinda','petrolina','paulista','camaragibe'], name:'Pernambuco', uf:'PE', lat:-8.8137, lng:-36.9541 },
+  { match:['piaui','piauí','teresina'],              name:'Piauí',             uf:'PI', lat:-7.7183,   lng:-42.7289  },
+  { match:['rio grande do norte','natal','mossoro','mossoró','caico','caicó'], name:'Rio Grande do Norte', uf:'RN', lat:-5.8127, lng:-36.2032 },
+  { match:['sergipe','aracaju','aracajú'],           name:'Sergipe',           uf:'SE', lat:-10.5741,  lng:-37.3857  },
+
+  // ── Região Centro-Oeste ──
+  { match:['distrito federal','df','brasilia','brasília'],  name:'Brasília/DF',  uf:'DF', lat:-15.7801,  lng:-47.9292  },
+  { match:['goias','goiás','goiania','goiânia','anapolis','anápolis','aparecida de goiania','rio verde'], name:'Goiás', uf:'GO', lat:-15.8270, lng:-49.8362 },
+  { match:['mato grosso do sul','ms','campo grande','dourados','tres lagoas','três lagoas','corumba','corumbá'], name:'Mato Grosso do Sul', uf:'MS', lat:-20.7722, lng:-54.7852 },
+  { match:['mato grosso','mt','cuiaba','cuiabá','rondonopolis','rondonópolis','sinop','varzea grande','várzea grande'], name:'Mato Grosso', uf:'MT', lat:-12.6819, lng:-56.9211 },
+
+  // ── Região Sudeste ──
+  { match:['espirito santo','espírito santo','es','vitoria','vitória','vila velha','serra','cariacica','cachoeiro'], name:'Espírito Santo', uf:'ES', lat:-19.1834, lng:-40.3089 },
+  { match:['minas gerais','mg','belo horizonte','bh','uberlandia','uberlândia','contagem','juiz de fora','montes claros','betim','ribeirao das neves','ribeirao preto mineiro','uberaba','governador valadares','ipatinga','sete lagoas','divinopolis','divinópolis'], name:'Minas Gerais', uf:'MG', lat:-18.5122, lng:-44.5550 },
+  { match:['rio de janeiro','rj','rio de janeiro cidade','niteroi','niterói','nova iguacu','nova iguaçu','duque de caxias','sao goncalo','são gonçalo','belford roxo','campos dos goytacazes','petrópolis','petropolis','volta redonda','angra dos reis','mage','magé'], name:'Rio de Janeiro', uf:'RJ', lat:-22.9068,  lng:-43.1729 },
+  { match:['sao paulo','são paulo','sp','campinas','guarulhos','sao bernardo','santo andre','santo andré','osasco','ribeirao preto','ribeirão preto','sorocaba','mogi das cruzes','santos','sao jose dos campos','são josé dos campos','maua','mauá','carapicuiba','carapicuíba','bauru','itaquaquecetuba','jundiai','jundiaí','piracicaba','cotia','barueri','suzano','taboao da serra','taboão da serra','embu das artes','franca','praia grande','limeira','santos sp','guaruja','guarujá','diadema','taubate','taubaté'], name:'São Paulo', uf:'SP', lat:-22.7162, lng:-47.3318 },
+
+  // ── Região Sul ──
+  { match:['parana','paraná','pr','curitiba','londrina','maringa','maringá','ponta grossa','cascavel','sao jose dos pinhais','são josé dos pinhais','guarapuava','paranagua','paranaguá','colombo','apucarana','foz do iguacu','foz do iguaçu'], name:'Paraná', uf:'PR', lat:-24.8909, lng:-51.4597 },
+  { match:['rio grande do sul','rs','porto alegre','caxias do sul','pelotas','canoas','santa maria','gravataí','viamao','viamão','novo hamburgo','sao leopoldo','são leopoldo','rio grande','alvorada','passo fundo','sapucaia do sul','uruguaiana'], name:'Rio Grande do Sul', uf:'RS', lat:-30.0346, lng:-51.2177 },
+  { match:['santa catarina','sc','florianopolis','florianópolis','joinville','blumenau','sao jose sc','são josé sc','criciuma','criciumá','chapeco','chapecó','itajai','itajaí','lages','palhoca','palhoça','jaragua do sul','jaraguá do sul'], name:'Santa Catarina', uf:'SC', lat:-27.2423, lng:-50.2189 },
+];
+
+/* ----------------------------------------------------------------
+   EXTRAI LOCALIDADE de um título de notícia
+   Retorna o GEO_LOCATION mais específico encontrado ou null
+---------------------------------------------------------------- */
+function extractLocation(title) {
+  const t = norm(title);
+  let best = null;
+
+  for (const loc of GEO_LOCATIONS) {
+    for (const term of loc.match) {
+      // Verificação com boundary: não queremos "para" dentro de "paragraf"
+      const idx = t.indexOf(norm(term));
+      if (idx === -1) continue;
+
+      // Checa se é palavra/frase isolada (espaço ou início/fim)
+      const before = idx === 0 || /[^a-z0-9]/.test(t[idx - 1]);
+      const after  = idx + term.length >= t.length || /[^a-z0-9]/.test(t[idx + term.length]);
+      if (!before || !after) continue;
+
+      // Prefere termos mais longos (mais específicos)
+      if (!best || term.length > (best._termLen || 0)) {
+        best = { ...loc, _termLen: term.length };
+      }
+    }
+  }
+
+  return best || null;
+}
+
+/* ----------------------------------------------------------------
+   MAP SERVICE
+---------------------------------------------------------------- */
+const MapSvc = {
+  map:     null,
+  markers: [],
+  layer:   null,
+  open:    false,
+
+  init() {
+    document.getElementById('btn-map').addEventListener('click', () => this.openModal());
+    document.getElementById('map-close').addEventListener('click', () => this.closeModal());
+    document.getElementById('map-modal').addEventListener('click', e => {
+      if (e.target === document.getElementById('map-modal')) this.closeModal();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && this.open) this.closeModal();
+    });
+  },
+
+  openModal() {
+    this.open = true;
+    const modal = document.getElementById('map-modal');
+    modal.classList.add('open');
+
+    // Inicializa o mapa Leaflet apenas uma vez
+    if (!this.map) {
+      this.map = L.map('map-container', {
+        center: [-15.78, -47.93],  // Brasil central (Brasília)
+        zoom: 4,
+        zoomControl: true,
+        attributionControl: true,
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 18,
+      }).addTo(this.map);
+    }
+
+    // Força recalculo de tamanho (o modal pode ter sido aberto depois do mapa)
+    setTimeout(() => {
+      this.map.invalidateSize();
+      this.render(Store.news);
+    }, 100);
+  },
+
+  closeModal() {
+    this.open = false;
+    document.getElementById('map-modal').classList.remove('open');
+  },
+
+  /* Cria ícone SVG colorido por severidade */
+  makeIcon(sev) {
+    const si    = sevInfo(sev);
+    const color = si.color.replace('var(--critical)', '#f43f5e')
+                          .replace('var(--high)',     '#fb923c')
+                          .replace('var(--medium)',   '#fbbf24')
+                          .replace('var(--low)',      '#34d399');
+
+    const svg = encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="34" viewBox="0 0 28 34">
+        <path d="M14 0C6.3 0 0 6.3 0 14c0 9.6 14 20 14 20s14-10.4 14-20C28 6.3 21.7 0 14 0z"
+              fill="${color}" fill-opacity="0.92"/>
+        <circle cx="14" cy="13" r="5" fill="white" fill-opacity="0.9"/>
+      </svg>`);
+
+    return L.icon({
+      iconUrl:    'data:image/svg+xml,' + svg,
+      iconSize:   [28, 34],
+      iconAnchor: [14, 34],
+      popupAnchor:[0, -32],
+    });
+  },
+
+  /* Cria ícone de cluster (bolha com número) */
+  makeClusterIcon(count, maxSev) {
+    const si    = sevInfo(maxSev);
+    const color = si.color.replace('var(--critical)', '#f43f5e')
+                          .replace('var(--high)',     '#fb923c')
+                          .replace('var(--medium)',   '#fbbf24')
+                          .replace('var(--low)',      '#34d399');
+    const size  = count > 9 ? 38 : 32;
+
+    const svg = encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+        <circle cx="${size/2}" cy="${size/2}" r="${size/2-2}" fill="${color}" fill-opacity=".85"/>
+        <circle cx="${size/2}" cy="${size/2}" r="${size/2-2}" fill="none" stroke="white" stroke-width="2" stroke-opacity=".5"/>
+        <text x="${size/2}" y="${size/2+4}" text-anchor="middle"
+              font-family="monospace" font-size="${count > 9 ? 13 : 14}" font-weight="bold"
+              fill="white">${count}</text>
+      </svg>`);
+
+    return L.divIcon({
+      html:      `<img src="data:image/svg+xml,${svg}" width="${size}" height="${size}">`,
+      iconSize:  [size, size],
+      iconAnchor:[size/2, size/2],
+      className: '',
+    });
+  },
+
+  render(news) {
+    if (!this.map) return;
+
+    // Limpa marcadores anteriores
+    this.markers.forEach(m => this.map.removeLayer(m));
+    this.markers = [];
+
+    // Agrupa por localidade
+    const byLoc = new Map();
+    news.forEach(n => {
+      const loc = extractLocation(n.title);
+      if (!loc) return;
+      const key = loc.uf;
+      if (!byLoc.has(key)) byLoc.set(key, { loc, items: [] });
+      byLoc.get(key).items.push(n);
+    });
+
+    let total = 0;
+    byLoc.forEach(({ loc, items }) => {
+      total += items.length;
+
+      // Ordena por severidade (maior primeiro)
+      items.sort((a, b) => b.sev - a.sev);
+      const maxSev = items[0].sev;
+
+      // Cluster se mais de 1 notícia no mesmo estado
+      let marker;
+      if (items.length === 1) {
+        marker = L.marker([loc.lat, loc.lng], { icon: this.makeIcon(maxSev) });
+      } else {
+        marker = L.marker([loc.lat, loc.lng], { icon: this.makeClusterIcon(items.length, maxSev) });
+      }
+
+      // Popup com as notícias do estado
+      const si        = sevInfo(maxSev);
+      const sevColor  = si.color.replace('var(--critical)','#f43f5e').replace('var(--high)','#fb923c').replace('var(--medium)','#fbbf24').replace('var(--low)','#34d399');
+      const sevBg     = si.color.replace('var(--critical)','rgba(244,63,94,.15)').replace('var(--high)','rgba(251,146,60,.12)').replace('var(--medium)','rgba(251,191,36,.12)').replace('var(--low)','rgba(52,211,153,.1)');
+
+      const popupItems = items.slice(0, 4).map(n => {
+        const nsi = sevInfo(n.sev);
+        const nc  = nsi.color.replace('var(--critical)','#f43f5e').replace('var(--high)','#fb923c').replace('var(--medium)','#fbbf24').replace('var(--low)','#34d399');
+        const nb  = nsi.color.replace('var(--critical)','rgba(244,63,94,.15)').replace('var(--high)','rgba(251,146,60,.12)').replace('var(--medium)','rgba(251,191,36,.12)').replace('var(--low)','rgba(52,211,153,.1)');
+        return `
+          <div style="border-bottom:1px solid #1e2a42;padding:6px 0;margin-bottom:6px;">
+            <span style="background:${nb};color:${nc};padding:1px 6px;border-radius:2px;
+                         font-size:9px;font-weight:700;font-family:monospace;">${nsi.label}</span>
+            <a href="${n.url}" target="_blank" rel="noopener noreferrer"
+               style="display:block;font-size:11px;font-weight:600;color:#e2e8f6;
+                      line-height:1.4;margin-top:4px;text-decoration:none;"
+               onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='#e2e8f6'">
+              ${n.title.length > 80 ? n.title.slice(0, 80) + '…' : n.title}
+            </a>
+            <div style="font-size:10px;color:#4a5a7a;margin-top:3px;">${n.source}</div>
+          </div>`;
+      }).join('');
+
+      const moreNote = items.length > 4
+        ? `<div style="font-size:10px;color:#4a5a7a;text-align:center;padding-top:4px;">+${items.length - 4} mais notícias neste estado</div>`
+        : '';
+
+      const popupHtml = `
+        <div style="min-width:220px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <strong style="font-size:13px;color:#e2e8f6;">${loc.name} (${loc.uf})</strong>
+            <span style="background:${sevBg};color:${sevColor};padding:2px 8px;border-radius:3px;
+                         font-size:10px;font-weight:700;font-family:monospace;">${items.length} notícia${items.length>1?'s':''}</span>
+          </div>
+          ${popupItems}
+          ${moreNote}
+        </div>`;
+
+      marker.bindPopup(popupHtml, { maxWidth: 300 });
+      marker.addTo(this.map);
+      this.markers.push(marker);
+    });
+
+    document.getElementById('map-count').textContent = total;
+
+    // Se tem marcadores, ajusta o zoom para mostrar todos
+    if (this.markers.length > 0) {
+      const group = L.featureGroup(this.markers);
+      this.map.fitBounds(group.getBounds().pad(0.15));
+    }
+  },
+
+  /* Atualiza mapa silenciosamente se já estiver aberto */
+  update(news) {
+    if (this.open && this.map) this.render(news);
+  }
+};
+
+/* ----------------------------------------------------------------
+   ARCHIVE SERVICE
+   Notícias expiradas (>48h) são movidas para localStorage.
+   Ficam disponíveis por 7 dias antes de serem descartadas.
+---------------------------------------------------------------- */
+const ArchiveSvc = {
+  KEY:     'fm_archive_v1',
+  MAX_AGE: 7 * 24 * 3600_000,   // 7 dias no arquivo
+  MAX:     500,                  // limite de itens arquivados
+
+  load() {
+    try { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); }
+    catch { return []; }
+  },
+
+  save(items) {
+    try { localStorage.setItem(this.KEY, JSON.stringify(items)); }
+    catch(e) {
+      // localStorage cheio — descarta os mais antigos
+      const trimmed = items.slice(-300);
+      try { localStorage.setItem(this.KEY, JSON.stringify(trimmed)); } catch(_) {}
+    }
+  },
+
+  /**
+   * Recebe a lista atual de notícias vivas.
+   * Remove do arquivo qualquer item que ainda esteja ativo (reapareceu no feed).
+   * Arquiva notícias que saíram do feed e expira as mais antigas que MAX_AGE.
+   */
+  sync(activeNews) {
+    const now        = Date.now();
+    const activeIds  = new Set(activeNews.map(n => n.id));
+    const existing   = this.load();
+
+    // Expira itens com >7 dias no arquivo
+    const valid = existing.filter(n => (now - n.archivedAt) < this.MAX_AGE);
+
+    // Remove itens que voltaram ao feed ativo
+    const withoutActive = valid.filter(n => !activeIds.has(n.id));
+
+    // Já arquivados (evita duplicata)
+    const archivedIds = new Set(withoutActive.map(n => n.id));
+
+    // Nada de novo a arquivar neste momento — o arquivamento acontece
+    // quando uma notícia CAI do feed ativo (ver method archive())
+    this.save(withoutActive.slice(-this.MAX));
+    return withoutActive;
+  },
+
+  /**
+   * Chamado quando a nova lista de notícias chega:
+   * items que estavam no feed anterior mas não estão na nova lista são arquivados.
+   */
+  archive(prevIds, currentNews) {
+    const now        = Date.now();
+    const currentIds = new Set(currentNews.map(n => n.id));
+    const stored     = this.load();
+    const storedIds  = new Set(stored.map(n => n.id));
+
+    // Identifica saídas do feed
+    const fallen = [...prevIds].filter(id => !currentIds.has(id) && !storedIds.has(id));
+    if (!fallen.size) return stored;
+
+    // Precisamos do dado completo — Store.news pode não ter mais, mas seen tem IDs
+    // Usamos o cache do DataSvc para recuperar metadados
+    const toArchive = fallen.map(id => {
+      const found = Store.news.find(n => n.id === id) || App._lastNews?.find(n => n.id === id);
+      if (!found) return null;
+      return { ...found, archivedAt: now };
+    }).filter(Boolean);
+
+    const merged = [...stored, ...toArchive].slice(-this.MAX);
+    this.save(merged);
+    return merged;
+  },
+
+  clear() {
+    localStorage.removeItem(this.KEY);
+    return [];
+  },
+
+  count() { return this.load().length; }
+};
+
+/* ----------------------------------------------------------------
+   ARCHIVE UI — modal, listagem e filtro
+---------------------------------------------------------------- */
+const ArchiveUI = {
+  items: [],
+
+  open() {
+    this.items = ArchiveSvc.load()
+      .sort((a,b) => b.archivedAt - a.archivedAt);
+    const modal = document.getElementById('archive-modal');
+    modal.style.display = 'flex';
+    this.render(this.items);
+    document.getElementById('archive-count').textContent = this.items.length;
+  },
+
+  close() {
+    document.getElementById('archive-modal').style.display = 'none';
+  },
+
+  render(list) {
+    const feed = document.getElementById('archive-feed');
+    if (!list.length) {
+      feed.innerHTML = `
+        <div style="text-align:center;padding:50px 20px;color:#4a5a7a;">
+          <div style="font-size:32px;margin-bottom:12px;opacity:.3;">🗂</div>
+          <div style="font-size:13px;font-weight:600;color:#8b97b8;">Arquivo vazio</div>
+          <div style="font-size:11px;margin-top:6px;line-height:1.7;">
+            Notícias que saíram das últimas 48h<br>aparecem aqui por mais 7 dias.
+          </div>
+        </div>`;
+      return;
+    }
+
+    feed.innerHTML = list.map(n => {
+      const si   = sevInfo(n.sev);
+      const cats = (n.cats||[]).map(id => CATS[id]).filter(Boolean);
+      const esc  = s => { const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML; };
+      const ago  = ms => {
+        const m = Math.floor(ms / 60_000);
+        if (m < 60)   return m + 'min';
+        if (m < 1440) return Math.floor(m/60) + 'h';
+        return Math.floor(m/1440) + 'd';
+      };
+      const archAge  = ago(Date.now() - n.archivedAt);
+      const newsAge  = ago(Date.now() - n.ts);
+      const manualBadge = n.dismissedManually
+        ? '<span style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#3b82f6;margin-left:4px;">dispensada manualmente</span>'
+        : '';
+      return `
+        <div style="
+          background:#131929;border:1px solid #1e2a42;border-left:3px solid ${si.color};
+          border-radius:8px;padding:12px 14px;opacity:.85;transition:opacity .15s;
+        " onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=.85">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:2px;
+              background:${si.color}18;color:${si.color};font-weight:600;">${si.label}</span>
+            <span style="font-size:10px;color:#4a5a7a;font-family:var(--mono);">
+              publicado ${newsAge} atrás
+            </span>${manualBadge}
+            <span style="font-size:10px;color:#273454;font-family:var(--mono);margin-left:auto;">
+              arquivado há ${archAge}
+            </span>
+          </div>
+          <a href="${esc(n.url)}" target="_blank" rel="noopener noreferrer"
+            style="display:block;font-size:13px;font-weight:600;color:#c8d8f0;line-height:1.45;margin-bottom:8px;text-decoration:none;"
+            onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='#c8d8f0'">
+            ${esc(n.title)}
+          </a>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span style="font-size:11px;color:#4a5a7a;">${esc(n.source)}</span>
+            <div style="display:flex;gap:4px;">
+              ${cats.map(c => `<span style="font-size:10px;padding:1px 7px;border-radius:100px;
+                background:#161d2e;border:1px solid #1e2a42;color:#8b97b8;">${c.icon} ${c.name}</span>`).join('')}
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  },
+
+  initBindings() {
+    document.getElementById('btn-open-archive')?.addEventListener('click', () => this.open());
+    document.getElementById('btn-close-archive')?.addEventListener('click', () => this.close());
+
+    document.getElementById('btn-archive-clear')?.addEventListener('click', () => {
+      if (!confirm('Limpar todo o arquivo? Esta ação não pode ser desfeita.')) return;
+      this.items = ArchiveSvc.clear();
+      document.getElementById('archive-count').textContent = 0;
+      document.getElementById('st-archive').textContent = 0;
+      this.render([]);
+    });
+
+    let st;
+    document.getElementById('archive-search')?.addEventListener('input', e => {
+      clearTimeout(st);
+      st = setTimeout(() => {
+        const q = e.target.value.trim().toLowerCase();
+        const filtered = q ? this.items.filter(n =>
+          norm(n.title).includes(norm(q)) || norm(n.source||'').includes(norm(q))
+        ) : this.items;
+        this.render(filtered);
+      }, 250);
+    });
+
+    // Fecha modal ao clicar fora
+    document.getElementById('archive-modal')?.addEventListener('click', e => {
+      if (e.target === document.getElementById('archive-modal')) this.close();
+    });
+
+    // Esc fecha modal
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') this.close();
+    });
+  }
+};
+
+App.init();
 </script>
 </body>
 </html>
