@@ -1109,10 +1109,12 @@ function classify(title, source) {
     s: c.kw.reduce((a, kw) => a + (t.includes(norm(kw)) ? 10 : 0), 0)
   }));
 
-  const topCats = scored.filter(x => x.s > 0)
+  let topCats = scored.filter(x => x.s > 0)
     .sort((a,b) => b.s - a.s).slice(0,3).map(x => x.id);
 
-  if (!topCats.length) {
+  // Fallback: só adiciona CAT 0 se NENHUMA categoria foi encontrada
+  // E só se o título mencionar algo relacionado ao universo bancário
+  if (topCats.length === 0) {
     const bankTerms = [
       'banco','bancari','financei','fraude','golpe','estelionato',
       'caixa','agencia','agência','pix','cartao','cartão','conta',
@@ -1120,7 +1122,11 @@ function classify(title, source) {
       'crime financeiro','lavagem','coaf','bacen','febraban',
       'policia federal','ministerio publico','inquerito','investigacao',
     ];
-    if (bankTerms.some(kw => t.includes(norm(kw)))) topCats.push(0);
+    if (bankTerms.some(kw => t.includes(norm(kw)))) {
+      topCats = [0];  // atribui array com CAT 0
+    } else {
+      topCats = [];   // descarta notícia completamente (não é bancária)
+    }
   }
 
   // Base: keywords de severidade
