@@ -615,7 +615,7 @@
     .card-title {
       display: block; font-size: 15px; font-weight: 600;
       color: var(--txt); line-height: 1.5;
-      margin-bottom: 12px; padding-right: 28px;
+      margin-bottom: 8px; padding-right: 0;
       transition: color .15s; word-break: break-word;
     }
     .card-title:hover { color: var(--blue); }
@@ -975,7 +975,7 @@ const CFG = {
   // ▼▼▼ COLE AQUI A URL DO SEU GOOGLE APPS SCRIPT ▼▼▼
   // Após implantar o fraudmonitor-proxy.gs, a URL tem este formato:
   // https://script.google.com/macros/s/SEU_ID_AQUI/exec
-  GAS_PROXY: 'https://script.google.com/macros/s/SEU_ID_AQUI/exec',   // ← cole a URL entre as aspas
+  GAS_PROXY: 'https://script.google.com/macros/s/AKfycbyoBdrYX4cKLNKoKsa0EDD1ADaDxKRmQV6Y3VEw259cX0HH4scnr3F7Ov-yVgIETnTvjQ/exec',   // ← cole a URL entre as aspas
 };
 
 /* ----------------------------------------------------------------
@@ -1107,8 +1107,9 @@ function extractMonetaryValue(title) {
   return 0;
 }
 
-function classify(title, source) {
+function classify(title, source, body) {
   const t = norm(title);
+  const tb = norm(title + ' ' + (body || ''));  // título + corpo para matching expandido
 
   // Score por categoria — keyword vale 10 pts, +15 bonus se categoria é destaque
   // stemMatch: verifica se todas as palavras da keyword aparecem no título (qualquer ordem)
@@ -1140,18 +1141,34 @@ function classify(title, source) {
 
   // Fallback: só adiciona CAT 0 se NENHUMA categoria foi encontrada
   // E só se o título mencionar algo relacionado ao universo bancário
+  // Se nenhuma categoria foi encontrada no título, tenta com título+corpo
+  if (topCats.length === 0 && body) {
+    const scoredBody = CATS.map(c => {
+      let s = c.kw.reduce((a, kw) => {
+        const kwn = norm(kw);
+        if (tb.includes(kwn)) return a + 5;  // corpo vale menos que título
+        if (stemMatch(tb, kw)) return a + 3;
+        return a;
+      }, 0);
+      if (s > 0 && c.destaque) s += 10;
+      return { id: c.id, s };
+    });
+    topCats = scoredBody.filter(x => x.s > 0)
+      .sort((a,b) => b.s - a.s).slice(0,3).map(x => x.id);
+  }
+
+  // Último fallback: termos bancários genéricos (título + corpo)
   if (topCats.length === 0) {
     const bankTerms = [
       'banco','bancari','financei','fraude','golpe','estelionato',
-      'caixa','agencia','agência','pix','cartao','cartão','conta',
-      'emprestimo','credito','debito','boleto','transferencia','saque',
+      'caixa','agencia','pix','cartao','conta',
       'crime financeiro','lavagem','coaf','bacen','febraban',
       'policia federal','ministerio publico','inquerito','investigacao',
     ];
-    if (bankTerms.some(kw => t.includes(norm(kw)))) {
-      topCats = [0];  // atribui array com CAT 0
+    if (bankTerms.some(kw => tb.includes(norm(kw)))) {
+      topCats = [0];
     } else {
-      topCats = [];   // descarta notícia completamente (não é bancária)
+      topCats = [];
     }
   }
 
@@ -1227,8 +1244,9 @@ const INSTITUTIONS = {
   ],
 };
 
-function detectImpact(title) {
-  const t = norm(title);
+function detectImpact(title, body) {
+  // Analisa título E corpo da notícia para detectar menções a bancos
+  const t = norm(title + ' ' + (body || ''));
   const found = { direct:[], related:[], sector:[] };
 
   for (const [tier, terms] of Object.entries(INSTITUTIONS)) {
@@ -1538,9 +1556,9 @@ class DataSvc {
               if (seen.has(id) || Store.isDismissed(id)) return;
               const ts = new Date(item.pubDate).getTime();
               if (isNaN(ts) || ts < janela) return;
-              const cl = classify(item.title, item.source);
+              const cl = classify(item.title, item.source, item.body);
               if (!cl.cats.length) return;
-              const impact = detectImpact(item.title);
+              const impact = detectImpact(item.title, item.body);
               const sev = impact.level === 'direct' ? Math.min(cl.sev+10,100) : cl.sev;
               seen.set(id, {
                 id, title: item.title,
@@ -1549,6 +1567,8 @@ class DataSvc {
                 ts: ts || Date.now(),
                 cats: cl.cats, sev,
                 impact, monetaryValue: cl.monetaryValue || 0,
+                image: item.image || '',
+                body: item.body || '',
                 fav: Store.isFav(id),
               });
             });
@@ -1578,10 +1598,10 @@ class DataSvc {
           const id = this.hash(item.url);
           if (seen.has(id)) return;
 
-          const cl = classify(item.title, item.source);
-          if (!cl.cats.length) return; // descarta não-bancário
+          const cl = classify(item.title, item.source, item.body);
+          if (!cl.cats.length) return;
 
-          const impact = detectImpact(item.title);
+          const impact = detectImpact(item.title, item.body);
           // Impacto direto no Itaú booosta a severidade (+10 pts, capped 100)
           const boostedSev = impact.level === 'direct'
             ? Math.min(cl.sev + 10, 100)
@@ -1601,6 +1621,8 @@ class DataSvc {
             sev: boostedSev,
             impact,
             monetaryValue: cl.monetaryValue || 0,
+            image: item.image || '',
+            body: item.body || '',
             fav: Store.isFav(id),
           });
         });
@@ -1962,8 +1984,15 @@ const UI = {
               title="${n.fav?'Remover favorito':'Salvar'}">${n.fav?'★':'☆'}</button>
           </div>
         </div>
-        <a class="card-title" href="${this.esc(n.url)}" target="_blank" rel="noopener noreferrer"
-          title="${this.esc(n.title)}">${this.highlightTitle(n.title)}</a>
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <div style="flex:1;min-width:0;">
+            <a class="card-title" href="${this.esc(n.url)}" target="_blank" rel="noopener noreferrer"
+              title="${this.esc(n.title)}">${this.highlightTitle(n.title)}</a>
+          </div>
+          ${n.image ? `<img src="${this.esc(n.image)}" alt=""
+            style="width:80px;height:56px;border-radius:4px;object-fit:cover;flex-shrink:0;opacity:.9;border:1px solid var(--border);"
+            onerror="this.style.display='none'" loading="lazy">` : ''}
+        </div>
         <div class="card-foot">
           <div class="card-foot-left">
             ${this.gaugeHTML(n.sev, si)}
