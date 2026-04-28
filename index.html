@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -986,8 +985,7 @@ const CATS = [
   {
     id: 0, key: 'fraudes',    name: 'Fraudes Bancárias',   icon: '🏦',
     color: '#3b82f6', destaque: false,
-    kw: ['fraude bancaria','fraude bancária','estelionato','conta fraudada','fraude financeira',
-         'crime financeiro','fraude eletronica','fraude eletrônica','desvio dinheiro','lavagem dinheiro',
+    kw: ['fraude bancaria','fraude bancária','desvio dinheiro','lavagem dinheiro',
          'fraude em banco','conto do vigario']
   },
   {
@@ -995,7 +993,8 @@ const CATS = [
     color: '#22d3ee', destaque: false,
     kw: ['golpe pix','fraude pix','golpe whatsapp','phishing','golpe digital','golpe online',
          'clonagem cartao','engenharia social','falso funcionario','falso funcionário',
-         'motoboy golpe','link falso banco','golpe bancario','golpe bancário']
+         'motoboy golpe','link falso banco','golpe bancario','golpe bancário','estelionato',
+         'falsa ligacao','falsa ligação','sms falso','email falso','conta clonada','cartao clonado']
   },
   {
     id: 2, key: 'operacoes', name: 'Operações Policiais', icon: '🚔',
@@ -1103,11 +1102,12 @@ function extractMonetaryValue(title) {
 function classify(title, source) {
   const t = norm(title);
 
-  // Score por categoria — cada keyword vale 10 pts
-  const scored = CATS.map(c => ({
-    id: c.id,
-    s: c.kw.reduce((a, kw) => a + (t.includes(norm(kw)) ? 10 : 0), 0)
-  }));
+  // Score por categoria — keyword vale 10 pts, +15 bonus se categoria é destaque
+  const scored = CATS.map(c => {
+    let s = c.kw.reduce((a, kw) => a + (t.includes(norm(kw)) ? 10 : 0), 0);
+    if (s > 0 && c.destaque) s += 15;  // categorias graves ganham peso
+    return { id: c.id, s };
+  });
 
   let topCats = scored.filter(x => x.s > 0)
     .sort((a,b) => b.s - a.s).slice(0,3).map(x => x.id);
