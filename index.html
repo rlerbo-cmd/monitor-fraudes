@@ -1392,17 +1392,30 @@ class DataSvc {
     // 0. Tenta Google Apps Script Proxy (mais confiável)
     if (CFG.GAS_PROXY) {
       try {
-        const r = await this.tfetch(CFG.GAS_PROXY + '?q=fraude+banco', 8000);
+        console.log('[FM] Testando GAS proxy:', CFG.GAS_PROXY);
+        const r = await this.tfetch(CFG.GAS_PROXY, 15000);
+        console.log('[FM] GAS HTTP:', r.status, r.ok, r.redirected);
         if (r.ok) {
-          const d = await r.json();
-          if (d.ok && Array.isArray(d.data)) {
-            this.gasProxy = true;
-            this.setSt('mode',  'Apps Script ✓', 'ok');
-            this.setSt('proxy', 'Google GAS', 'ok');
-            return true;
+          const txt = await r.text();
+          console.log('[FM] GAS resposta:', txt.substring(0, 120));
+          try {
+            const d = JSON.parse(txt);
+            if (d.ok && Array.isArray(d.data)) {
+              this.gasProxy = true;
+              this.setSt('mode',  'Apps Script ✓', 'ok');
+              this.setSt('proxy', 'Google GAS · ' + (d.source || ''), 'ok');
+              console.log('[FM] GAS OK! ' + d.count + ' notícias');
+              return true;
+            } else if (d.ok === false) {
+              console.warn('[FM] GAS retornou erro:', d.error);
+            }
+          } catch(pe) {
+            console.warn('[FM] GAS parse error:', pe.message, txt.substring(0, 80));
           }
         }
-      } catch(_) {}
+      } catch(e) {
+        console.warn('[FM] GAS falhou:', e.message);
+      }
     }
 
     // 1. Tenta backend Node.js
