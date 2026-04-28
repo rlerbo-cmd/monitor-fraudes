@@ -974,7 +974,8 @@ const CFG = {
 
   // ▼▼▼ COLE AQUI A URL DO SEU GOOGLE APPS SCRIPT ▼▼▼
   // Após implantar o fraudmonitor-proxy.gs, a URL tem este formato:
-https://script.google.com/macros/s/AKfycbyoBdrYX4cKLNKoKsa0EDD1ADaDxKRmQV6Y3VEw259cX0HH4scnr3F7Ov-yVgIETnTvjQ/exec  GAS_PROXY: 'https://script.google.com/macros/s/AKfycbyoBdrYX4cKLNKoKsa0EDD1ADaDxKRmQV6Y3VEw259cX0HH4scnr3F7Ov-yVgIETnTvjQ/exec',   // ← cole a URL entre as aspas
+  // https://script.google.com/macros/s/SEU_ID_AQUI/exec
+  GAS_PROXY: 'https://script.google.com/macros/s/AKfycbyoBdrYX4cKLNKoKsa0EDD1ADaDxKRmQV6Y3VEw259cX0HH4scnr3F7Ov-yVgIETnTvjQ/exec',
 };
 
 /* ----------------------------------------------------------------
@@ -1558,6 +1559,10 @@ class DataSvc {
               const cl = classify(item.title, item.source, item.body);
               if (!cl.cats.length) return;
               const impact = detectImpact(item.title, item.body);
+              // Flag: impacto detectado pelo corpo (não aparecia no título)
+              if (impact.level !== 'none' && !detectImpact(item.title, '').banks.length) {
+                impact.viaBody = true;
+              }
               const sev = impact.level === 'direct' ? Math.min(cl.sev+10,100) : cl.sev;
               seen.set(id, {
                 id, title: item.title,
