@@ -1001,7 +1001,9 @@ const CATS = [
     color: '#f43f5e', destaque: true,
     kw: ['operacao policial','operação policial','policia federal','polícia federal',
          'policia civil','polícia civil','mandado prisao','mandado prisão','mandado busca',
-         'desarticulada quadrilha','preso suspeito','deflagrada operacao','operacao especial']
+         'desarticulada quadrilha','preso suspeito','deflagrada operacao','operacao especial',
+         'preso acusado','preso por fraude','presos por golpe','quadrilha presa',
+         'detido por fraude','apreendido','flagrante fraude']
   },
   {
     id: 3, key: 'invest',    name: 'Investigações',       icon: '🔍',
@@ -1031,16 +1033,22 @@ const CATS = [
   {
     id: 7, key: 'assalto',   name: 'Assalto a Banco',     icon: '🦹',
     color: '#f43f5e', destaque: true,
-    kw: ['assalto banco','roubo agencia','roubo agência','assaltou banco',
+    kw: ['assalto banco','assalto a banco','assaltam banco','assaltou banco',
+         'assaltam mulher','assaltam vitima','assaltam cliente',
+         'roubo agencia','roubo agência','roubo banco',
          'quadrilha assalto banco','roubo armado banco','assaltantes banco',
          'bando invade banco','render funcionarios banco',
-         'quadrilha banco brasil','armado agencia bancaria','gang assalto banco']
+         'quadrilha banco brasil','armado agencia bancaria','gang assalto banco',
+         'assalto agencia','assalto cliente banco']
   },
   {
     id: 8, key: 'saidinha',  name: 'Saidinha Bancária',   icon: '💸',
     color: '#fbbf24', destaque: false,
-    kw: ['saidinha bancaria','saidinha bancária','golpe saque','roubo apos saque',
-         'roubo após saque','vitima saque','vítima saque','abordado saida banco','seguido saque']
+    kw: ['saidinha bancaria','saidinha bancária','saidinha de banco','saidinha banco',
+         'saidinha','golpe saque','roubo apos saque','roubo após saque',
+         'vitima saque','vítima saque','abordado saida banco','seguido saque',
+         'assaltado saindo banco','roubada saindo banco','abordada saindo banco',
+         'saindo da agencia','saindo do banco']
   },
   {
     id: 9, key: 'explosao',  name: 'Explosão de Agência', icon: '💥',
@@ -1103,9 +1111,27 @@ function classify(title, source) {
   const t = norm(title);
 
   // Score por categoria — keyword vale 10 pts, +15 bonus se categoria é destaque
+  // stemMatch: verifica se todas as palavras da keyword aparecem no título (qualquer ordem)
+  function stemMatch(title, kw) {
+    const kwWords = norm(kw).split(' ').filter(w => w.length >= 3);
+    if (!kwWords.length) return false;
+    // Cada palavra da keyword deve aparecer como substring no título
+    // Usa raiz de 4+ chars para pegar conjugações (assalto→assaltam, saque→saques)
+    return kwWords.every(w => {
+      const stem = w.length >= 5 ? w.slice(0, -1) : w;  // remove última letra como stem simples
+      return title.includes(w) || title.includes(stem);
+    });
+  }
+
   const scored = CATS.map(c => {
-    let s = c.kw.reduce((a, kw) => a + (t.includes(norm(kw)) ? 10 : 0), 0);
-    if (s > 0 && c.destaque) s += 15;  // categorias graves ganham peso
+    let s = c.kw.reduce((a, kw) => {
+      const kwn = norm(kw);
+      // Match exato (10pts) ou stem match (7pts)
+      if (t.includes(kwn)) return a + 10;
+      if (stemMatch(t, kw)) return a + 7;
+      return a;
+    }, 0);
+    if (s > 0 && c.destaque) s += 15;
     return { id: c.id, s };
   });
 
